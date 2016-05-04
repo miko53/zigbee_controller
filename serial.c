@@ -10,6 +10,7 @@
 #include <fcntl.h>
 #include "serial.h"
 #include <assert.h>
+#include <syslog.h>
 
 static uint32_t serial_convertBaudRateToFlag(uint32_t baudrate);
 
@@ -201,7 +202,7 @@ static uint32_t serial_convertBaudRateToFlag(uint32_t baudrate)
 
     default:
       baudrateValue = B9600;
-      fprintf(stdout, "unknwon speed value, set to 9600bps\n");
+      syslog(LOG_WARNING, "unknwon speed value, set to 9600bps");
       break;
   }
 
@@ -224,7 +225,7 @@ bool serial_read(int32_t fd, uint8_t* buffer, uint32_t size)
     nbCurrentyRead = read(fd, &(buffer[nbRead]), size - nbRead);
     if (nbCurrentyRead == -1)
     {
-      fprintf(stdout, "Error on read data errno = %d\n", errno);
+      syslog(LOG_ERR, "Error on read data errno = %d", errno);
       bResult = false;
       break;
     }
@@ -259,7 +260,7 @@ bool serial_write(int32_t fd, uint8_t* buffer, uint32_t size)
   nbWritten = write(fd, buffer, size);
   if (nbWritten == -1)
   {
-    fprintf(stderr, "unable to send data on serial line erro = %d\n", errno);
+    syslog(LOG_ERR, "unable to send data on serial line erro = %d", errno);
   }
   else if (size == (uint32_t) nbWritten)
   {

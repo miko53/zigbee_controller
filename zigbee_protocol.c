@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <syslog.h>
 
 static void zigbee_handleTx(zigbee_obj* zb);
 static zb_handle_status zigbee_handleRx(zigbee_obj* zb);
@@ -44,7 +45,7 @@ void zigbee_handleTx(zigbee_obj* zb)
 
 zb_handle_status zigbee_handleRx(zigbee_obj* zb)
 {
-  zb_status status;
+  zb_handle_status status;
   bool bReplyCorrectyReceived;
   bool bContinue;
 
@@ -62,28 +63,27 @@ zb_handle_status zigbee_handleRx(zigbee_obj* zb)
           if ((zb->atReplyExpected == true) && (zb->decodedData.atCmd.frameID == zb->frameID))
           {
             status = ZB_AT_REPLY_RECEIVED;
-            bContinue = false;
           }
           break;
 
         case ZIGBEE_MODEM_STATUS:
           zb->modemStatus = zb->decodedData.modemStatus;
-          if (zb->atReplyExpected == true)
-          {
-            bContinue = true;
-          }
-
           break;
 
         case ZIGBEE_TRANSMIT_STATUS:
           break;
+
         case ZIGBEE_RECEIVE_PACKET:
           status = ZB_RX_FRAME_RECEIVED;
           break;
 
         default:
-          fprintf(stdout, "unknow frame received (type = %x)\n", zb->decodedData.type);
+          syslog(LOG_WARNING, "unknow frame received (type = %x)", zb->decodedData.type);
           break;
+      }
+      if ((zb->atReplyExpected == true) && (status != ZB_AT_REPLY_RECEIVED))
+      {
+        bContinue = true;
       }
     }
     else
@@ -263,8 +263,14 @@ zb_status zigbee_protocol_retrieveSerial(zigbee_obj* obj, uint32_t* serialLow, u
 zb_status zigbee_protocol_configure(zigbee_obj* obj, zigbee_config* config)
 {
   zb_status status;
+  //status = ZB_CMD_SUCCESS;
+  status = zigbee_protocol_setBaudRate(obj, 115200);
 
-  status = zigbee_protocol_setPanID(obj, &config->panID);
+  if (status == ZB_CMD_SUCCESS)
+  {
+    status = zigbee_protocol_setPanID(obj, &config->panID);
+  }
+
   if (status == ZB_CMD_SUCCESS)
   {
     status = zigbee_protocol_setScanChannelBitmask(obj, config->channelBitMask);

@@ -10,7 +10,9 @@
 #include "display.h"
 #include <string.h>
 #include <syslog.h>
-
+#include "gpio.h"
+#include <assert.h>
+#include "sensor.h"
 
 static int32_t configure(zigbee_obj* zigbee);
 static void read_hardware_data(zigbee_obj* obj);
@@ -28,6 +30,9 @@ int main(int argc, char* argv[])
     fprintf(stderr, "Usage : %s tty_device\n", argv[0]);
   }
 
+  //first, start by reset the zb component
+  reset();
+
   fd = serial_setup(argv[1], 9600, SERIAL_PARITY_OFF, SERIAL_RTSCTS_OFF, SERIAL_STOPNB_1);
   if (fd < 0)
   {
@@ -40,6 +45,7 @@ int main(int argc, char* argv[])
   }
 
   openlog("zb_controler", 0, LOG_USER);
+  syslog(LOG_INFO, "starting...");
 
   zigbee_protocol_initialize(&zigbee, fd, buffer, 50);
 
@@ -58,23 +64,23 @@ int main(int argc, char* argv[])
 
   if (status == 0)
   {
-    fprintf(stdout, "Network activated, wait for end of scanning\n");
+    syslog(LOG_INFO, "Network activated, wait for end of scanning");
     status = zigbee_protocol_waitEndOfAssociation(&zigbee, &indicationStatus);
-    fprintf(stdout, "Network association activated status = 0x%x, joining status = 0x%x\n", status, indicationStatus);
+    syslog(LOG_INFO, "Network association activated status = 0x%x, joining status = 0x%x", status, indicationStatus);
   }
 
   if ((status == 0) && (indicationStatus == 0))
   {
     zigbee_panID currentPanID;
     status = zigbee_protocol_getPanID(&zigbee, &currentPanID);
-    fprintf(stdout, "curren PAN ID = %d,%d,%d,%d,%d,%d,%d,%d\n", currentPanID[0], currentPanID[1], currentPanID[2],
-            currentPanID[3], currentPanID[4], currentPanID[5], currentPanID[6], currentPanID[7]);
+    syslog(LOG_INFO, "curren PAN ID = %d,%d,%d,%d,%d,%d,%d,%d", currentPanID[0], currentPanID[1], currentPanID[2],
+           currentPanID[3], currentPanID[4], currentPanID[5], currentPanID[6], currentPanID[7]);
 
-    uint16_t maxRFPayloadBytes;
-    status = zigbee_protocol_getMaxRFPayloadBytes(&zigbee, &maxRFPayloadBytes);
-
-    fprintf(stdout, "maxRFPayloadBytes = %d\n", maxRFPayloadBytes);
-    fprintf(stdout, "Wait For Data reception\n");
+    //     uint16_t maxRFPayloadBytes;
+    //     status = zigbee_protocol_getMaxRFPayloadBytes(&zigbee, &maxRFPayloadBytes);
+    //
+    //     fprintf(stdout, "maxRFPayloadBytes = %d\n", maxRFPayloadBytes);
+    syslog(LOG_INFO, "Ready, waiting for data reception");
     while (1)
     {
       zb_handle_status statusH;
@@ -82,18 +88,15 @@ int main(int argc, char* argv[])
       statusH = zigbee_handle(&zigbee);
       if (statusH == ZB_RX_FRAME_RECEIVED)
       {
+        sensor_readAndProvideSensorData(&zigbee.decodedData);
         status = zigbee_protocol_getReceivedSignalStrength(&zigbee, &signalStrenght);
-        fprintf(stdout, "signal Strenght of last reception frame : 0x%x\n", signalStrenght);
+        syslog(LOG_INFO, "strenght of signal for the last frame reception: 0x%x\n", signalStrenght);
       }
     }
   }
   else
   {
-    fprintf(stdout, "Error : ");
-    if (status == 0)
-    {
-      fprintf(stdout, "%s\n", zigbee_get_indicationError(indicationStatus));
-    }
+    syslog(LOG_EMERG, "configuration error %s", zigbee_get_indicationError(indicationStatus));
   }
 
   closelog();
@@ -122,16 +125,11 @@ static int32_t configure(zigbee_obj* zigbee)
   status = zigbee_protocol_configure(zigbee, &config);
   if (status == ZB_CMD_SUCCESS)
   {
-    fprintf(stdout, "Configuration done\n");
+    syslog(LOG_INFO, "Configuration done");
   }
   else
   {
-    fprintf(stdout, "Configuration failed status = 0x%x\n", status);
-  }
-
-  if (status == ZB_CMD_SUCCESS)
-  {
-    status = zigbee_protocol_setBaudRate(zigbee, 115200);
+    syslog(LOG_EMERG, "Configuration failed status = 0x%x", status);
   }
 
   if (status == ZB_CMD_SUCCESS)
@@ -158,18 +156,18 @@ static void read_hardware_data(zigbee_obj* obj)
   status = zigbee_protocol_retrieveHwVersion(obj, &hwVersion);
   if (status == 0)
   {
-    fprintf(stdout, "hwVersion = %.2x\n", hwVersion);
+    syslog(LOG_INFO, "hardware version = %.2x", hwVersion);
   }
 
   status = zigbee_protocol_retrieveFwVersion(obj, &fwVersion);
   if (status == 0)
   {
-    fprintf(stdout, "firmware version  = %.2x\n", fwVersion);
+    syslog(LOG_INFO, "firmware version  = %.2x", fwVersion);
   }
 
   status = zigbee_protocol_retrieveSerial(obj, &serialLow, &serialHigh);
   if (status == 0)
   {
-    fprintf(stdout, "serial number  (%.4x,%.4x)\n", serialHigh, serialLow);
+    syslog(LOG_INFO, "serial number  (%.4x,%.4x)", serialHigh, serialLow);
   }
 }

@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <netinet/in.h>
+#include <syslog.h>
 
 const zigbee_panID zigbee_randomPanID = { 0, 0, 0, 0, 0, 0, 0, 0};
 const zigbee_encryptionKey zigbee_randomEncryptionKey = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -498,7 +499,7 @@ bool zigbee_decodeFrame(uint8_t* frame, uint16_t frameSize, zigbee_decodedFrame*
     checksum = zigbee_doChecksum(frame, frameSize - 1);
     if (checksum != frame[frameSize - 1])
     {
-      fprintf(stdout, "Checksum KO\n");
+      syslog(LOG_ERR, "Checksum KO");
       bCorrectlyDecoded = false;
     }
     else
