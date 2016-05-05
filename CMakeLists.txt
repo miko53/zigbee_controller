@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 2.6)
 project(zb_controler)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -W -Wall -Wextra -std=gnu99 -g -O0")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -W -Wall -Wextra -std=gnu99 ")
 
 option(TRACE_ACTIVATED OFF)
 
