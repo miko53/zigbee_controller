@@ -157,6 +157,7 @@ static void sensor_readData(zb_payload_frame* payload)
           gData[gIndex].id = id;
           gData[gIndex].value = temp;
           gData[gIndex].unit = "temp";
+          gIndex++;
         }
         break;
 
@@ -168,6 +169,7 @@ static void sensor_readData(zb_payload_frame* payload)
           gData[gIndex].id = id;
           gData[gIndex].value = humidity;
           gData[gIndex].unit = "humd";
+          gIndex++;
         }
         break;
 
@@ -180,13 +182,13 @@ static void sensor_readData(zb_payload_frame* payload)
           gData[gIndex].id = id;
           gData[gIndex].value = batt;
           gData[gIndex].unit = "volt";
+          gIndex++;
         }
         break;
 
       default:
         break;
     }
-    gIndex++;
   }
 }
 

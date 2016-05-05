@@ -30,6 +30,7 @@ zb_handle_status zigbee_handle(zigbee_obj* zigbee)
   zb_handle_status status;
   zigbee_handleTx(zigbee);
   status = zigbee_handleRx(zigbee);
+  zigbee->atReplyExpected = false;
   return status;
 }
 
