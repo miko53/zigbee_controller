@@ -3,7 +3,7 @@
 #include "sensor.h"
 #include "stdint.h"
 #include "unused.h"
-
+#include "configfile.h"
 
 const uint8_t payload1[] = {0x0, 0x8, 0x3, 0x1, 0x3, 0x16, 0x2d, 0x2, 0x3, 0x1d, 0xf0, 0x3, 0x3, 0x1, 0xd3};
 
@@ -26,6 +26,19 @@ int main (int argc, char* argv[])
   frame.receivedPacket.payloadSize = 15;
   frame.receivedPacket.payload = (uint8_t*) payload1;
   frame.type = ZIGBEE_RECEIVE_PACKET;
-  sensor_readAndProvideSensorData(&frame);
+  sensor_readAndProvideSensorData(&frame, "./post_data.rb");
 
+  if (argc >= 2)
+  {
+    configfile_read(argv[1]);
+    fprintf(stdout, "script = %s\n", config_scriptName);
+    fprintf(stdout, "pandID = (%d)\n", config_nbPanID);
+    for(uint32_t i = 0; i < config_nbPanID; i++)
+    {
+      fprintf(stdout, "%d = 0x%x\n", i, config_panID[i]);
+    }
+  }
+  
 }
+
+

@@ -3,6 +3,6 @@
 
 #include "zigbee.h"
 
-extern void sensor_readAndProvideSensorData(zigbee_decodedFrame* decodedData);
+extern void sensor_readAndProvideSensorData(zigbee_decodedFrame* decodedData, const char* scriptExe);
 
 #endif /* __SENSOR_H__ */

@@ -13,9 +13,17 @@
 #include "gpio.h"
 #include <assert.h>
 #include "sensor.h"
+#include "configfile.h"
+#include "daemonize.h"
 
-static int32_t configure(zigbee_obj* zigbee);
+static int32_t configure(zigbee_obj* zigbee,  zigbee_panID* panID);
 static void read_hardware_data(zigbee_obj* obj);
+static void run(zigbee_obj* zigbee);
+
+#define ZB_BUFFER_SIZE      (100)
+
+static uint8_t zb_buffer[ZB_BUFFER_SIZE];
+
 
 int main(int argc, char* argv[])
 {
@@ -23,35 +31,71 @@ int main(int argc, char* argv[])
   int32_t fd;
   uint32_t status;
   uint8_t indicationStatus;
-  uint8_t buffer[50];
+  char* configFile;
+  bool bAsDaemon;
 
-  if (argc != 2)
+  int opt;
+  bAsDaemon = false;
+  configFile = NULL;
+  
+  while ((opt = getopt(argc, argv, "hdc:")) != -1)
   {
-    fprintf(stderr, "Usage : %s tty_device\n", argv[0]);
+    switch (opt)
+    {
+      case 'd':
+        bAsDaemon = true;
+        break;
+        
+      case 'c':
+        configFile = optarg;
+        break;
+        
+      case 'h':
+      default:
+        fprintf(stderr, "usage : %s -c <config file> (-d -> for daemonize)\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+  }
+  
+  if (configFile == NULL)
+  {
+    fprintf(stderr, "no config file provided\nExiting...\n");
+        exit(EXIT_FAILURE);
+  }
+  
+  status = configfile_read(configFile);
+  if (status != 0)
+  {
+    exit(EXIT_FAILURE);
+  }
+ 
+  zigbee_panID panID;
+  uint32_t i;
+  for(i = 0; i < 8; i++)
+  {
+    panID[i] = config_panID[i];
   }
 
+  if (bAsDaemon)
+    daemonize();
+  
+  openlog("zb_controler", 0, LOG_USER);
+  syslog(LOG_INFO, "starting...");
+  
   //first, start by reset the zb component
   reset();
 
-  fd = serial_setup(argv[1], 9600, SERIAL_PARITY_OFF, SERIAL_RTSCTS_OFF, SERIAL_STOPNB_1);
+  fd = serial_setup(config_ttydevice, 9600, SERIAL_PARITY_OFF, SERIAL_RTSCTS_OFF, SERIAL_STOPNB_1);
   if (fd < 0)
   {
-    fprintf(stderr, "not possible to configurate serial line '%s'\n", argv[1]);
-    return EXIT_FAILURE;
+    syslog(LOG_EMERG, "not possible to configurate serial line '%s'", config_ttydevice);
+    exit(EXIT_FAILURE);
   }
-  else
-  {
-    //     fprintf(stdout, "serial line ok, fd = %d\n", fd);
-  }
-
-  openlog("zb_controler", 0, LOG_USER);
-  syslog(LOG_INFO, "starting...");
-
-  zigbee_protocol_initialize(&zigbee, fd, buffer, 50);
-
+  
+  zigbee_protocol_initialize(&zigbee, fd, zb_buffer, ZB_BUFFER_SIZE);
   read_hardware_data(&zigbee);
-
-  status = configure(&zigbee);
+  
+  status = configure(&zigbee, &panID);
   if (status == 0)
   {
     status = zigbee_protocol_setNodeIdentifier(&zigbee, "ZBC1");
@@ -71,28 +115,7 @@ int main(int argc, char* argv[])
 
   if ((status == 0) && (indicationStatus == 0))
   {
-    zigbee_panID currentPanID;
-    status = zigbee_protocol_getPanID(&zigbee, &currentPanID);
-    syslog(LOG_INFO, "curren PAN ID = %d,%d,%d,%d,%d,%d,%d,%d", currentPanID[0], currentPanID[1], currentPanID[2],
-           currentPanID[3], currentPanID[4], currentPanID[5], currentPanID[6], currentPanID[7]);
-
-    //     uint16_t maxRFPayloadBytes;
-    //     status = zigbee_protocol_getMaxRFPayloadBytes(&zigbee, &maxRFPayloadBytes);
-    //
-    //     fprintf(stdout, "maxRFPayloadBytes = %d\n", maxRFPayloadBytes);
-    syslog(LOG_INFO, "Ready, waiting for data reception");
-    while (1)
-    {
-      zb_handle_status statusH;
-      uint8_t signalStrenght;
-      statusH = zigbee_handle(&zigbee);
-      if (statusH == ZB_RX_FRAME_RECEIVED)
-      {
-        sensor_readAndProvideSensorData(&zigbee.decodedData);
-        status = zigbee_protocol_getReceivedSignalStrength(&zigbee, &signalStrenght);
-        syslog(LOG_INFO, "strenght of signal for the last frame reception: 0x%x\n", signalStrenght);
-      }
-    }
+    run(&zigbee);
   }
   else
   {
@@ -104,10 +127,39 @@ int main(int argc, char* argv[])
 }
 
 
-static int32_t configure(zigbee_obj* zigbee)
+static void run(zigbee_obj* zigbee)
+{
+  uint32_t status;
+    zigbee_panID currentPanID;
+    status = zigbee_protocol_getPanID(zigbee, &currentPanID);
+    if (status== 0)
+    {
+      syslog(LOG_INFO, "curren PAN ID = %d,%d,%d,%d,%d,%d,%d,%d", currentPanID[0], currentPanID[1], currentPanID[2],
+            currentPanID[3], currentPanID[4], currentPanID[5], currentPanID[6], currentPanID[7]);
+    //     uint16_t maxRFPayloadBytes;
+    //     status = zigbee_protocol_getMaxRFPayloadBytes(&zigbee, &maxRFPayloadBytes);
+    //
+    //     fprintf(stdout, "maxRFPayloadBytes = %d\n", maxRFPayloadBytes);
+    }
+
+    syslog(LOG_INFO, "Ready, waiting for data reception");
+    while (1)
+    {
+      zb_handle_status statusH;
+      uint8_t signalStrenght;
+      statusH = zigbee_handle(zigbee);
+      if (statusH == ZB_RX_FRAME_RECEIVED)
+      {
+        sensor_readAndProvideSensorData(&zigbee->decodedData, config_scriptName);
+        status = zigbee_protocol_getReceivedSignalStrength(zigbee, &signalStrenght);
+        syslog(LOG_INFO, "strenght of signal for the last frame reception: 0x%x\n", signalStrenght);
+      }
+    }
+}
+
+static int32_t configure(zigbee_obj* zigbee, zigbee_panID* panID)
 {
   zigbee_config config;
-  zigbee_panID panID = { 'M', 'I', 'C', 'K', 0, 0, 0, 1};
   zb_status status;
   int32_t rc;
 

@@ -63,7 +63,7 @@ static uint32_t gIndex;
 static void sensor_readData(zb_payload_frame* payload);
 static void sensor_buildAddress(zigbee_64bDestAddr* zbAddr, char* buffer, uint32_t size);
 
-void sensor_readAndProvideSensorData(zigbee_decodedFrame* decodedData)
+void sensor_readAndProvideSensorData(zigbee_decodedFrame* decodedData, const char* scriptExe)
 {
   assert(decodedData != NULL);
   assert(decodedData->type == ZIGBEE_RECEIVE_PACKET);
@@ -73,15 +73,14 @@ void sensor_readAndProvideSensorData(zigbee_decodedFrame* decodedData)
   uint32_t i;
 
   zb_payload_frame* payload = (zb_payload_frame*) decodedData->receivedPacket.payload;
-
+  
   switch (payload->dataType)
   {
     case SENSOR_PROTOCOL_DATA_TYPE:
       sensor_readData(payload);
 
       sensor_buildAddress(&decodedData->receivedPacket.receiver64bAddr, address, SENSOR_TMP_SIZE);
-
-      strcpy(commandline, "post_data.rb address=");
+      snprintf(commandline, SENSOR_CMD_LINE_SIZE, "%s address=", scriptExe);
       strcat(commandline, address);
       strcat(commandline, " ");
 
