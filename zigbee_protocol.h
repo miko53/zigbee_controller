@@ -10,8 +10,7 @@ typedef enum
   ZB_CMD_FAILED
 } zb_status;
 
-
-typedef struct
+struct zigbee_obj_s
 {
   uint32_t fd;
   uint16_t frameID;
@@ -21,7 +20,10 @@ typedef struct
   bool atReplyExpected;
   zigbee_decodedFrame decodedData;
   uint8_t modemStatus;
-} zigbee_obj;
+  void (*onDataFrameReception)(struct zigbee_obj_s* obj, zigbee_decodedFrame* frame);
+};
+
+typedef struct zigbee_obj_s zigbee_obj;
 
 typedef struct
 {
@@ -43,7 +45,8 @@ typedef enum
   ZB_RX_FRAME_RECEIVED,
 } zb_handle_status;
 
-extern void zigbee_protocol_initialize(zigbee_obj* obj, uint32_t fd, uint8_t* buffer, uint32_t bufferSize);
+extern void zigbee_protocol_initialize(zigbee_obj* obj, uint32_t fd, uint8_t* buffer, uint32_t bufferSize,
+                                       void (*onDataCallBack)(struct zigbee_obj_s*, zigbee_decodedFrame*) );
 extern zb_status zigbee_protocol_configure(zigbee_obj* obj, zigbee_config* config);
 extern zb_status zigbee_protocol_configureIO(zigbee_obj* obj);
 

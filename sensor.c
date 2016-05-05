@@ -98,8 +98,6 @@ void sensor_readAndProvideSensorData(zigbee_decodedFrame* decodedData, const cha
       }
       syslog(LOG_DEBUG, "commandline: %s", commandline);
       system(commandline);
-      syslog(LOG_DEBUG, "end");
-
       break;
 
     case SENSOR_PROTOCOL_DBG_TYPE:

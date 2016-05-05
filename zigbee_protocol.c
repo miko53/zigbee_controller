@@ -76,6 +76,10 @@ zb_handle_status zigbee_handleRx(zigbee_obj* zb)
 
         case ZIGBEE_RECEIVE_PACKET:
           status = ZB_RX_FRAME_RECEIVED;
+          if (zb->onDataFrameReception != NULL)
+          {
+            zb->onDataFrameReception(zb, &zb->decodedData);
+          }
           break;
 
         default:
@@ -146,7 +150,8 @@ static bool zigbee_protocol_waitAndcheckReply(uint32_t fd, uint8_t* receivedFram
   return bSuccess;
 }
 
-void zigbee_protocol_initialize(zigbee_obj* obj, uint32_t fd, uint8_t* buffer, uint32_t bufferSize)
+void zigbee_protocol_initialize(zigbee_obj* obj, uint32_t fd, uint8_t* buffer, uint32_t bufferSize,
+                                void (*onDataCallBack)(struct zigbee_obj_s* obj, zigbee_decodedFrame* frame))
 {
   assert(obj != NULL);
   obj->fd = fd;
@@ -156,6 +161,7 @@ void zigbee_protocol_initialize(zigbee_obj* obj, uint32_t fd, uint8_t* buffer, u
   obj->sizeOfFrameToSend = 0; // 0 when no data are to be sent
   obj->modemStatus = 0;//TODO
   obj->atReplyExpected = false;
+  obj->onDataFrameReception = onDataCallBack;
 }
 
 static void zigbee_protocol_incrementFrameID(zigbee_obj* obj)

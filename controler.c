@@ -15,10 +15,12 @@
 #include "sensor.h"
 #include "configfile.h"
 #include "daemonize.h"
+#include "unused.h"
 
 static int32_t configure(zigbee_obj* zigbee,  zigbee_panID* panID);
 static void read_hardware_data(zigbee_obj* obj);
 static void run(zigbee_obj* zigbee);
+static void onDataCallBack(zigbee_obj* obj, zigbee_decodedFrame* pFrame);
 
 #define ZB_BUFFER_SIZE      (100)
 
@@ -94,7 +96,7 @@ int main(int argc, char* argv[])
     exit(EXIT_FAILURE);
   }
 
-  zigbee_protocol_initialize(&zigbee, fd, zb_buffer, ZB_BUFFER_SIZE);
+  zigbee_protocol_initialize(&zigbee, fd, zb_buffer, ZB_BUFFER_SIZE, onDataCallBack);
   read_hardware_data(&zigbee);
 
   status = configure(&zigbee, &panID);
@@ -152,12 +154,18 @@ static void run(zigbee_obj* zigbee)
     statusH = zigbee_handle(zigbee);
     if (statusH == ZB_RX_FRAME_RECEIVED)
     {
-      sensor_readAndProvideSensorData(&zigbee->decodedData, config_scriptName);
       status = zigbee_protocol_getReceivedSignalStrength(zigbee, &signalStrenght);
       syslog(LOG_INFO, "strenght of signal for the last frame reception: 0x%x\n", signalStrenght);
     }
   }
 }
+
+void onDataCallBack(zigbee_obj* obj, zigbee_decodedFrame* pFrame)
+{
+  UNUSED(obj);
+  sensor_readAndProvideSensorData(pFrame, config_scriptName);
+}
+
 
 static int32_t configure(zigbee_obj* zigbee, zigbee_panID* panID)
 {
