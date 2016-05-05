@@ -51,9 +51,9 @@ zb_handle_status zigbee_handleRx(zigbee_obj* zb)
   bool bContinue;
 
   status = ZB_NO_REPLY;
-  bContinue = false;
   do
   {
+    bContinue = false;
     bReplyCorrectyReceived = zigbee_protocol_waitAndcheckReply(zb->fd, zb->frame, zb->frameSize, &zb->decodedData);
     if (bReplyCorrectyReceived)
     {

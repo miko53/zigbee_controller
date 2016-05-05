@@ -97,7 +97,8 @@ void sensor_readAndProvideSensorData(zigbee_decodedFrame* decodedData, const cha
         strcat(commandline, temp);
       }
       syslog(LOG_DEBUG, "commandline: %s", commandline);
-      //system(commandline);
+      system(commandline);
+      syslog(LOG_DEBUG, "end");
 
       break;
 
