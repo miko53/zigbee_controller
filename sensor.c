@@ -6,6 +6,8 @@
 #include <time.h>
 #include <string.h>
 #include "unused.h"
+#include <syslog.h>
+#include <stdlib.h>
 
 typedef struct
 {
@@ -73,7 +75,7 @@ void sensor_readAndProvideSensorData(zigbee_decodedFrame* decodedData, const cha
   uint32_t i;
 
   zb_payload_frame* payload = (zb_payload_frame*) decodedData->receivedPacket.payload;
-  
+
   switch (payload->dataType)
   {
     case SENSOR_PROTOCOL_DATA_TYPE:
@@ -94,7 +96,8 @@ void sensor_readAndProvideSensorData(zigbee_decodedFrame* decodedData, const cha
         snprintf(temp, SENSOR_TMP_SIZE, "%f ", gData[i].value);
         strcat(commandline, temp);
       }
-      //fprintf(stdout, "commandline: %s\n", commandline);
+      syslog(LOG_DEBUG, "commandline: %s", commandline);
+      //system(commandline);
 
       break;
 

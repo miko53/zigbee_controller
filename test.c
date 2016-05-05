@@ -33,12 +33,12 @@ int main (int argc, char* argv[])
     configfile_read(argv[1]);
     fprintf(stdout, "script = %s\n", config_scriptName);
     fprintf(stdout, "pandID = (%d)\n", config_nbPanID);
-    for(uint32_t i = 0; i < config_nbPanID; i++)
+    for (uint32_t i = 0; i < config_nbPanID; i++)
     {
       fprintf(stdout, "%d = 0x%x\n", i, config_panID[i]);
     }
   }
-  
+
 }
 
 

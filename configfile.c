@@ -9,6 +9,7 @@
 
 char* config_scriptName;
 char* config_ttydevice;
+char* config_gpio_reset;
 uint8_t* config_panID;
 uint32_t config_nbPanID;
 
@@ -20,7 +21,7 @@ int32_t configfile_read(const char filename[])
 {
   FILE* f;
   int32_t rc;
-  
+
   f = fopen(filename, "r");
   if (f == NULL)
   {
@@ -31,7 +32,7 @@ int32_t configfile_read(const char filename[])
     rc = configfile_doRead(f);
     fclose(f);
   }
-  
+
   if (rc == 0)
   {
     if ((config_scriptName == NULL) || (config_ttydevice == NULL) || (config_panID == NULL))
@@ -40,7 +41,7 @@ int32_t configfile_read(const char filename[])
       rc = -1;
     }
   }
-  
+
   return rc;
 }
 
@@ -53,7 +54,7 @@ static int32_t configfile_doRead(FILE* f)
   char* endRead;
   int32_t rc;
   uint32_t lineNo;
-  
+
   lineNo = 0;
   do
   {
@@ -69,7 +70,7 @@ static int32_t configfile_doRead(FILE* f)
     lineNo++;
   }
   while (!feof(f) && (rc == 0));
-  
+
   return rc;
 }
 
@@ -201,8 +202,8 @@ static int32_t configfile_decodeLine(char line[])
 
   if ((state == VALUE) || (state == VALUE_STRING))
   {
-//      fprintf(stdout, "key = '%s', value = '%s'\n", key, value);
-     rc = configfile_createConfig( key, value);
+    //      fprintf(stdout, "key = '%s', value = '%s'\n", key, value);
+    rc = configfile_createConfig( key, value);
   }
   else if (state == IDLE)
   {
@@ -224,11 +225,11 @@ static int32_t configfile_createConfig(char key[], char value[])
   uint32_t v;
   uint32_t i;
   uint32_t max;
-  
+
   i = 0;
   max = 8;
   rc = 0;
-  
+
   if (strcmp(key, "panID") == 0)
   {
     if (config_panID == NULL)
@@ -236,11 +237,11 @@ static int32_t configfile_createConfig(char key[], char value[])
       config_panID = malloc(sizeof(uint8_t) * max);
       assert(config_panID != NULL);
     }
-    
+
     token = strtok(value, ", ");
     while (token != NULL)
     {
-//       fprintf(stdout, "token = %s\n", token);
+      //       fprintf(stdout, "token = %s\n", token);
       v = strtoul(token, &endConversion, 0);
       if (*endConversion == '\0')
       {
@@ -248,7 +249,7 @@ static int32_t configfile_createConfig(char key[], char value[])
         if (i == max)
         {
           uint8_t* n;
-          n = realloc(config_panID, max*2);
+          n = realloc(config_panID, max * 2);
           assert(n != NULL);
           config_panID = n;
           max = max * 2;
@@ -261,20 +262,26 @@ static int32_t configfile_createConfig(char key[], char value[])
   }
   else if (strcmp(key, "script") == 0)
   {
-    config_scriptName = malloc(strlen(value)+1);
+    config_scriptName = malloc(strlen(value) + 1);
     assert(config_scriptName != NULL);
     strcpy(config_scriptName, value);
   }
   else if (strcmp(key, "ttydevice") == 0)
   {
-    config_ttydevice = malloc(strlen(value)+1);
+    config_ttydevice = malloc(strlen(value) + 1);
     assert(config_ttydevice != NULL);
     strcpy(config_ttydevice, value);
   }
+  else if (strcmp(key, "gpio_reset") == 0)
+  {
+    config_gpio_reset = malloc(strlen(value) + 1);
+    assert(config_gpio_reset != NULL);
+    strcpy(config_gpio_reset, value);
+  }
   else
+  {
     rc = -1;
-  
+  }
+
   return rc;
 }
-
-

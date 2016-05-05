@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
   int opt;
   bAsDaemon = false;
   configFile = NULL;
-  
+
   while ((opt = getopt(argc, argv, "hdc:")) != -1)
   {
     switch (opt)
@@ -45,45 +45,47 @@ int main(int argc, char* argv[])
       case 'd':
         bAsDaemon = true;
         break;
-        
+
       case 'c':
         configFile = optarg;
         break;
-        
+
       case 'h':
       default:
         fprintf(stderr, "usage : %s -c <config file> (-d -> for daemonize)\n", argv[0]);
         exit(EXIT_FAILURE);
     }
   }
-  
+
   if (configFile == NULL)
   {
     fprintf(stderr, "no config file provided\nExiting...\n");
-        exit(EXIT_FAILURE);
+    exit(EXIT_FAILURE);
   }
-  
+
   status = configfile_read(configFile);
   if (status != 0)
   {
     exit(EXIT_FAILURE);
   }
- 
+
   zigbee_panID panID;
   uint32_t i;
-  for(i = 0; i < 8; i++)
+  for (i = 0; i < 8; i++)
   {
     panID[i] = config_panID[i];
   }
 
   if (bAsDaemon)
+  {
     daemonize();
-  
+  }
+
   openlog("zb_controler", 0, LOG_USER);
   syslog(LOG_INFO, "starting...");
-  
+
   //first, start by reset the zb component
-  reset();
+  reset(config_gpio_reset);
 
   fd = serial_setup(config_ttydevice, 9600, SERIAL_PARITY_OFF, SERIAL_RTSCTS_OFF, SERIAL_STOPNB_1);
   if (fd < 0)
@@ -91,10 +93,10 @@ int main(int argc, char* argv[])
     syslog(LOG_EMERG, "not possible to configurate serial line '%s'", config_ttydevice);
     exit(EXIT_FAILURE);
   }
-  
+
   zigbee_protocol_initialize(&zigbee, fd, zb_buffer, ZB_BUFFER_SIZE);
   read_hardware_data(&zigbee);
-  
+
   status = configure(&zigbee, &panID);
   if (status == 0)
   {
@@ -130,31 +132,31 @@ int main(int argc, char* argv[])
 static void run(zigbee_obj* zigbee)
 {
   uint32_t status;
-    zigbee_panID currentPanID;
-    status = zigbee_protocol_getPanID(zigbee, &currentPanID);
-    if (status== 0)
-    {
-      syslog(LOG_INFO, "curren PAN ID = %d,%d,%d,%d,%d,%d,%d,%d", currentPanID[0], currentPanID[1], currentPanID[2],
-            currentPanID[3], currentPanID[4], currentPanID[5], currentPanID[6], currentPanID[7]);
+  zigbee_panID currentPanID;
+  status = zigbee_protocol_getPanID(zigbee, &currentPanID);
+  if (status == 0)
+  {
+    syslog(LOG_INFO, "curren PAN ID = %d,%d,%d,%d,%d,%d,%d,%d", currentPanID[0], currentPanID[1], currentPanID[2],
+           currentPanID[3], currentPanID[4], currentPanID[5], currentPanID[6], currentPanID[7]);
     //     uint16_t maxRFPayloadBytes;
     //     status = zigbee_protocol_getMaxRFPayloadBytes(&zigbee, &maxRFPayloadBytes);
     //
     //     fprintf(stdout, "maxRFPayloadBytes = %d\n", maxRFPayloadBytes);
-    }
+  }
 
-    syslog(LOG_INFO, "Ready, waiting for data reception");
-    while (1)
+  syslog(LOG_INFO, "Ready, waiting for data reception");
+  while (1)
+  {
+    zb_handle_status statusH;
+    uint8_t signalStrenght;
+    statusH = zigbee_handle(zigbee);
+    if (statusH == ZB_RX_FRAME_RECEIVED)
     {
-      zb_handle_status statusH;
-      uint8_t signalStrenght;
-      statusH = zigbee_handle(zigbee);
-      if (statusH == ZB_RX_FRAME_RECEIVED)
-      {
-        sensor_readAndProvideSensorData(&zigbee->decodedData, config_scriptName);
-        status = zigbee_protocol_getReceivedSignalStrength(zigbee, &signalStrenght);
-        syslog(LOG_INFO, "strenght of signal for the last frame reception: 0x%x\n", signalStrenght);
-      }
+      sensor_readAndProvideSensorData(&zigbee->decodedData, config_scriptName);
+      status = zigbee_protocol_getReceivedSignalStrength(zigbee, &signalStrenght);
+      syslog(LOG_INFO, "strenght of signal for the last frame reception: 0x%x\n", signalStrenght);
     }
+  }
 }
 
 static int32_t configure(zigbee_obj* zigbee, zigbee_panID* panID)
@@ -195,7 +197,6 @@ static int32_t configure(zigbee_obj* zigbee, zigbee_panID* panID)
 
   return rc;
 }
-
 
 static void read_hardware_data(zigbee_obj* obj)
 {
