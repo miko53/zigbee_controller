@@ -71,6 +71,12 @@ int main(int argc, char* argv[])
     exit(EXIT_FAILURE);
   }
 
+  if ((config_scriptName == NULL) || (config_ttydevice == NULL) || (config_panID == NULL) || (config_gpio_reset == NULL))
+  {
+    fprintf(stderr, "config file is not complete\n");
+    exit(EXIT_FAILURE);
+  }
+
   zigbee_panID panID;
   uint32_t i;
   for (i = 0; i < 8; i++)

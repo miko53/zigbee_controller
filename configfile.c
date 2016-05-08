@@ -10,8 +10,10 @@
 char* config_scriptName;
 char* config_ttydevice;
 char* config_gpio_reset;
+char* config_device;
 uint8_t* config_panID;
 uint32_t config_nbPanID;
+double config_altitude;
 
 static int32_t configfile_doRead(FILE* f);
 static int32_t configfile_decodeLine(char line[]);
@@ -31,15 +33,6 @@ int32_t configfile_read(const char filename[])
   {
     rc = configfile_doRead(f);
     fclose(f);
-  }
-
-  if (rc == 0)
-  {
-    if ((config_scriptName == NULL) || (config_ttydevice == NULL) || (config_panID == NULL))
-    {
-      fprintf(stderr, "config file is not complete\n");
-      rc = -1;
-    }
   }
 
   return rc;
@@ -277,6 +270,21 @@ static int32_t configfile_createConfig(char key[], char value[])
     config_gpio_reset = malloc(strlen(value) + 1);
     assert(config_gpio_reset != NULL);
     strcpy(config_gpio_reset, value);
+  }
+  else if (strcmp(key, "device") == 0)
+  {
+    config_device = malloc(strlen(value) + 1);
+    assert(config_device != NULL);
+    strcpy(config_device, value);
+  }
+  else if (strcmp(key, "altitude") == 0)
+  {
+    double v;
+    v = strtod(value, &endConversion);
+    if (*endConversion == '\0')
+    {
+      config_altitude = v;
+    }
   }
   else
   {

@@ -20,7 +20,7 @@ void reset(const char* gpio_name)
   fd = open(gpio_name, O_WRONLY);
   if (fd == -1)
   {
-    syslog(LOG_EMERG, "unable to reset zigbee controler, open '%s' failed", gpio_name);
+    syslog(LOG_EMERG, "unable to reset, open '%s' failed", gpio_name);
   }
   else
   {

@@ -14,5 +14,5 @@ endif()
 add_executable(zb_controler controler.c serial.c zigbee.c zigbee_protocol.c display.c gpio.c sensor.c configfile.c daemonize.c)
 add_executable(zb_test test.c sensor.c configfile.c )
 
-add_executable(bmp085 bmp085.c)
+add_executable(bmp085 bmp085.c configfile.c gpio.c daemonize.c)
 target_link_libraries(bmp085 m)
