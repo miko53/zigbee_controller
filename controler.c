@@ -187,8 +187,11 @@ static int32_t configure(zigbee_obj* zigbee, zigbee_panID* panID)
   memcpy(&config.networkKey, zigbee_randomEncryptionKey, sizeof(zigbee_encryptionKey));
   memcpy(&config.linkKey, zigbee_noLinkKey, sizeof(zigbee_linkKey));
 
-  config.sleepPeriod = 0x708; //18s
-  config.nbSleepPeriod = 5; //5*18 = 90s --> 1mn30
+  config.sleepPeriod = 0xA08; //25,6s
+  config.nbSleepPeriod = 12; //12*25.6 = 308s -~> 5mn
+
+//   config.sleepPeriod = 0xAF0; //28s
+//   config.nbSleepPeriod = 11; //11*28 = 308s -~> 5mn
 
   status = zigbee_protocol_configure(zigbee, &config);
   if (status == ZB_CMD_SUCCESS)
