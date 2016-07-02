@@ -55,7 +55,7 @@ typedef struct
 {
   uint8_t id;
   char* unit;
-  float value;
+  double value;
 } sensorDataForScript;
 
 
@@ -93,7 +93,7 @@ void sensor_readAndProvideSensorData(zigbee_decodedFrame* decodedData, const cha
         strcat(commandline, temp);
         strcat(commandline, gData[i].unit);
         strcat(commandline, "=");
-        snprintf(temp, SENSOR_TMP_SIZE, "%f ", gData[i].value);
+        snprintf(temp, SENSOR_TMP_SIZE, "%.3f ", gData[i].value);
         strcat(commandline, temp);
       }
       syslog(LOG_DEBUG, "commandline: %s", commandline);
@@ -137,9 +137,9 @@ static void sensor_readData(zb_payload_frame* payload)
   uint16_t temp_raw;
   uint16_t humidity_raw;
   uint16_t batt_raw;
-  float temp;
-  float humidity;
-  float batt;
+  double temp;
+  double humidity;
+  double batt;
 
   nbSensor = payload->frame.sensorDataNumber;
   gIndex = 0;
@@ -152,7 +152,7 @@ static void sensor_readData(zb_payload_frame* payload)
         if (payload->frame.sensors[id].status == 0x03)
         {
           temp_raw = ntohs(payload->frame.sensors[id].data);
-          temp = ((165.0 * temp_raw) / 16383) - 40;
+          temp = ((165.0 * temp_raw) / 16383.0) - 40.0;
           gData[gIndex].id = id;
           gData[gIndex].value = temp;
           gData[gIndex].unit = "temp";
@@ -164,7 +164,7 @@ static void sensor_readData(zb_payload_frame* payload)
         if (payload->frame.sensors[id].status == 0x03)
         {
           humidity_raw = ntohs(payload->frame.sensors[id].data);
-          humidity = (100.0 * humidity_raw) / 16383;
+          humidity = (100.0 * humidity_raw) / 16383.0;
           gData[gIndex].id = id;
           gData[gIndex].value = humidity;
           gData[gIndex].unit = "humd";
@@ -176,7 +176,7 @@ static void sensor_readData(zb_payload_frame* payload)
         if (payload->frame.sensors[id].status == 0x03)
         {
           batt_raw = ntohs(payload->frame.sensors[id].data);
-          batt = (batt_raw * 3.3) / 1023;
+          batt = (batt_raw * 3.3) / 1023.0;
           batt = (batt * (2.2 + 4.7)) / 2.2;
           gData[gIndex].id = id;
           gData[gIndex].value = batt;

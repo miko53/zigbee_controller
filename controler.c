@@ -17,7 +17,7 @@
 #include "daemonize.h"
 #include "unused.h"
 
-static int32_t configure(zigbee_obj* zigbee,  zigbee_panID* panID);
+static int32_t configure(zigbee_obj* zigbee, zigbee_panID* panID, bool bWriteData);
 static void read_hardware_data(zigbee_obj* obj);
 static void run(zigbee_obj* zigbee);
 static void onDataCallBack(zigbee_obj* obj, zigbee_decodedFrame* pFrame);
@@ -35,12 +35,16 @@ int main(int argc, char* argv[])
   uint8_t indicationStatus;
   char* configFile;
   bool bAsDaemon;
+  bool bWriteConfig;
+  int32_t baudRate;
 
   int opt;
   bAsDaemon = false;
   configFile = NULL;
+  bWriteConfig = false;
+  baudRate = 115200; //by default if device already configurated set to 115200
 
-  while ((opt = getopt(argc, argv, "hdc:")) != -1)
+  while ((opt = getopt(argc, argv, "whdc:b:")) != -1)
   {
     switch (opt)
     {
@@ -51,10 +55,18 @@ int main(int argc, char* argv[])
       case 'c':
         configFile = optarg;
         break;
+        
+      case 'w':
+        bWriteConfig = true;
+        break;
+        
+      case 'b':
+        baudRate = atoi(optarg); // Note: default speed of zigbee device is 9600
+        break;
 
       case 'h':
       default:
-        fprintf(stderr, "usage : %s -c <config file> (-d -> for daemonize)\n", argv[0]);
+        fprintf(stderr, "usage : %s -c <config file> (-d -> for daemonize) -w --> write data on zb -b <initial serial speed, default:115200> \n", argv[0]);
         exit(EXIT_FAILURE);
     }
   }
@@ -95,7 +107,7 @@ int main(int argc, char* argv[])
   //first, start by reset the zb component
   reset(config_gpio_reset);
 
-  fd = serial_setup(config_ttydevice, 9600, SERIAL_PARITY_OFF, SERIAL_RTSCTS_OFF, SERIAL_STOPNB_1);
+  fd = serial_setup(config_ttydevice, baudRate, SERIAL_PARITY_OFF, SERIAL_RTSCTS_OFF, SERIAL_STOPNB_1);
   if (fd < 0)
   {
     syslog(LOG_EMERG, "not possible to configurate serial line '%s'", config_ttydevice);
@@ -105,7 +117,7 @@ int main(int argc, char* argv[])
   zigbee_protocol_initialize(&zigbee, fd, zb_buffer, ZB_BUFFER_SIZE, onDataCallBack);
   read_hardware_data(&zigbee);
 
-  status = configure(&zigbee, &panID);
+  status = configure(&zigbee, &panID, bWriteConfig);
   if (status == 0)
   {
     status = zigbee_protocol_setNodeIdentifier(&zigbee, "ZBC1");
@@ -156,12 +168,12 @@ static void run(zigbee_obj* zigbee)
   while (1)
   {
     zb_handle_status statusH;
-    uint8_t signalStrenght;
+    //     uint8_t signalStrenght;
     statusH = zigbee_handle(zigbee);
     if (statusH == ZB_RX_FRAME_RECEIVED)
     {
-      status = zigbee_protocol_getReceivedSignalStrength(zigbee, &signalStrenght);
-      syslog(LOG_INFO, "strenght of signal for the last frame reception: 0x%x\n", signalStrenght);
+      //       status = zigbee_protocol_getReceivedSignalStrength(zigbee, &signalStrenght);
+      //       syslog(LOG_INFO, "strenght of signal for the last frame reception: 0x%x\n", signalStrenght);
     }
   }
 }
@@ -173,7 +185,7 @@ void onDataCallBack(zigbee_obj* obj, zigbee_decodedFrame* pFrame)
 }
 
 
-static int32_t configure(zigbee_obj* zigbee, zigbee_panID* panID)
+static int32_t configure(zigbee_obj* zigbee, zigbee_panID* panID, bool bWriteData)
 {
   zigbee_config config;
   zb_status status;
@@ -189,9 +201,10 @@ static int32_t configure(zigbee_obj* zigbee, zigbee_panID* panID)
 
   config.sleepPeriod = 0xA08; //25,6s
   config.nbSleepPeriod = 12; //12*25.6 = 308s -~> 5mn
+  config.writeData = bWriteData;
 
-//   config.sleepPeriod = 0xAF0; //28s
-//   config.nbSleepPeriod = 11; //11*28 = 308s -~> 5mn
+  //   config.sleepPeriod = 0xAF0; //28s
+  //   config.nbSleepPeriod = 11; //11*28 = 308s -~> 5mn
 
   status = zigbee_protocol_configure(zigbee, &config);
   if (status == ZB_CMD_SUCCESS)

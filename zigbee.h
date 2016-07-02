@@ -62,6 +62,7 @@ extern uint32_t zigbee_encode_SetNodeIdentifier(uint8_t* buffer, uint32_t size, 
 extern char*    zigbee_get_indicationError(uint8_t indicationStatus);
 extern uint32_t zigbee_encode_setSleepMode(uint8_t* buffer, uint32_t size, uint8_t frameID, zigbee_sleepMode sleepMode);
 extern uint32_t zigbee_encode_applyChanges(uint8_t* buffer, uint32_t size, uint8_t frameID);
+extern uint32_t zigbee_encode_write(uint8_t* buffer, uint32_t size, uint8_t frameID);
 extern uint32_t zigbee_encode_getPanID(uint8_t* buffer, uint32_t size, uint8_t frameID);
 extern uint32_t zigbee_encode_getRFPayloadBytes(uint8_t* buffer, uint32_t size, uint8_t frameID);
 extern uint32_t zigbee_encode_getReceivedSignalStrenght(uint8_t* buffer, uint32_t size, uint8_t frameID);

@@ -41,6 +41,7 @@ typedef enum
   AT_SET_BAUD_RATE,
   AT_SET_NUMBER_OF_SLEEP_PERIOD,
   AT_SET_SLEEP_PERIOD,
+  AT_WRITE,
   AT_NB_COMMAND,
 } zigbee_AT_COMMAND_LIST;
 
@@ -72,7 +73,8 @@ const char* zigbee_AT_COMMAND[AT_NB_COMMAND] =
   /* AT_IO_PWM_RSSI_TIMER        */ "RP",
   /* AT_SET_BAUD_RATE            */ "BD",
   /* AT_SET_NUMBER_OF_SLEEP_PERIOD*/ "SN",
-  /* AT_SET_SLEEP_PERIOD*/           "SP"
+  /* AT_SET_SLEEP_PERIOD*/           "SP",
+  /* AT_WRITE */                     "WR"
 };
 
 static uint8_t zigbee_doChecksum(uint8_t* frame, uint32_t size);
@@ -357,6 +359,17 @@ uint32_t zigbee_encode_applyChanges(uint8_t* buffer, uint32_t size, uint8_t fram
                         NULL, 0);
 }
 
+//AT WR
+uint32_t zigbee_encode_write(uint8_t* buffer, uint32_t size, uint8_t frameID)
+{
+  return
+    zigbee_encode_ATcmd(buffer, size,
+                        frameID,
+                        zigbee_AT_COMMAND[AT_WRITE],
+                        NULL, 0);
+}
+
+
 //AT NP
 uint32_t zigbee_encode_getRFPayloadBytes(uint8_t* buffer, uint32_t size, uint8_t frameID)
 {
@@ -634,6 +647,7 @@ char* zigbee_get_indicationError(uint8_t indicationStatus)
 
     default:
       errorString = "uknown error";
+      syslog(LOG_ERR, "indicationStatus = 0x%x", indicationStatus);
       break;
   }
   return errorString;

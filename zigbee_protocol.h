@@ -36,6 +36,7 @@ typedef struct
   zigbee_encryptionKey networkKey;
   uint16_t nbSleepPeriod;
   uint16_t sleepPeriod;
+  bool writeData;
 } zigbee_config;
 
 typedef enum
@@ -61,6 +62,8 @@ extern zb_status zigbee_protocol_setSleepPeriod(zigbee_obj* obj, uint16_t sleepP
 extern zb_status zigbee_protocol_startJoinNetwork(zigbee_obj* obj, uint8_t joinTime);
 extern zb_status zigbee_protocol_waitEndOfAssociation(zigbee_obj* obj, uint8_t* indicationStatus);
 extern zb_status zigbee_protocol_applyChanges(zigbee_obj* obj);
+extern zb_status zigbee_protocol_write(zigbee_obj* obj);
+
 extern zb_status zigbee_protocol_getPanID(zigbee_obj* obj, zigbee_panID* panID);
 extern zb_status zigbee_protocol_getMaxRFPayloadBytes(zigbee_obj* obj, uint16_t* maxRFPayloadBytes);
 extern zb_status zigbee_protocol_getReceivedSignalStrength(zigbee_obj* obj, uint8_t* signalStrenght);

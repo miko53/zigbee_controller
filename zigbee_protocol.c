@@ -113,6 +113,7 @@ static bool zigbee_protocol_waitAndcheckReply(uint32_t fd, uint8_t* receivedFram
   waitTime.tv_sec = 2;
   waitTime.tv_usec = 0;
   bSuccess = false;
+  nextSizeToRead = 0;
 
   if (select(fd + 1, &rfs, NULL, NULL, &waitTime) > 0)
   {
@@ -147,6 +148,17 @@ static bool zigbee_protocol_waitAndcheckReply(uint32_t fd, uint8_t* receivedFram
       }
     }
   }
+  else
+  {
+#ifdef TRACE_ACTIVATED
+    fprintf(stdout, "Timeout\n");
+#endif // TRACE_ACTIVATED
+  }
+
+#ifdef TRACE_ACTIVATED
+  fprintf(stdout, "bSuccess = %d nextSizeToRead = %d\n", bSuccess, nextSizeToRead);
+#endif // TRACE_ACTIVATED
+
   return bSuccess;
 }
 
@@ -322,6 +334,12 @@ zb_status zigbee_protocol_configure(zigbee_obj* obj, zigbee_config* config)
       status = zigbee_protocol_applyChanges(obj);
     }
   */
+
+  if ((status == ZB_CMD_SUCCESS) && (config->writeData == true))
+  {
+    status = zigbee_protocol_write(obj);
+    syslog(LOG_INFO, "write data into ZB (status = %d)", status);
+  }
 
   return status;
 }
@@ -813,6 +831,27 @@ zb_status zigbee_protocol_applyChanges(zigbee_obj* obj)
 
   zigbee_protocol_incrementFrameID(obj);
   obj->sizeOfFrameToSend = zigbee_encode_applyChanges(obj->frame, obj->frameSize, obj->frameID);
+  obj->atReplyExpected = true;
+
+  handle_status = zigbee_handle(obj);
+  if ((handle_status == ZB_AT_REPLY_RECEIVED) &&
+      (obj->decodedData.atCmd.status == 0))
+  {
+    status = ZB_CMD_SUCCESS;
+  }
+  return status;
+}
+
+zb_status zigbee_protocol_write(zigbee_obj* obj)
+{
+  zb_handle_status handle_status;
+  zb_status status;
+
+  assert(obj != NULL);
+  status = ZB_CMD_FAILED;
+
+  zigbee_protocol_incrementFrameID(obj);
+  obj->sizeOfFrameToSend = zigbee_encode_write(obj->frame, obj->frameSize, obj->frameID);
   obj->atReplyExpected = true;
 
   handle_status = zigbee_handle(obj);
