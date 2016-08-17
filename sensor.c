@@ -8,6 +8,7 @@
 #include "unused.h"
 #include <syslog.h>
 #include <stdlib.h>
+#include "sensor_db.h"
 
 typedef struct
 {
@@ -73,31 +74,42 @@ void sensor_readAndProvideSensorData(zigbee_decodedFrame* decodedData, const cha
   char address[SENSOR_TMP_SIZE];
   char temp[SENSOR_TMP_SIZE];
   uint32_t i;
+  bool isRetry;
 
   zb_payload_frame* payload = (zb_payload_frame*) decodedData->receivedPacket.payload;
 
   switch (payload->dataType)
   {
     case SENSOR_PROTOCOL_DATA_TYPE:
-      sensor_readData(payload);
 
       sensor_buildAddress(&decodedData->receivedPacket.receiver64bAddr, address, SENSOR_TMP_SIZE);
-      snprintf(commandline, SENSOR_CMD_LINE_SIZE, "%s address=", scriptExe);
-      strcat(commandline, address);
-      strcat(commandline, " ");
 
-      for (i = 0; i < gIndex; i++)
+      isRetry = sensor_db_update(&decodedData->receivedPacket.receiver64bAddr, payload->counter);
+      if (isRetry == false)
       {
-        temp[0] = '\0';
-        snprintf(temp, SENSOR_TMP_SIZE, "id=%d ", gData[i].id);
-        strcat(commandline, temp);
-        strcat(commandline, gData[i].unit);
-        strcat(commandline, "=");
-        snprintf(temp, SENSOR_TMP_SIZE, "%.3f ", gData[i].value);
-        strcat(commandline, temp);
+        sensor_readData(payload);
+
+        snprintf(commandline, SENSOR_CMD_LINE_SIZE, "%s address=", scriptExe);
+        strcat(commandline, address);
+        strcat(commandline, " ");
+
+        for (i = 0; i < gIndex; i++)
+        {
+          temp[0] = '\0';
+          snprintf(temp, SENSOR_TMP_SIZE, "id=%d ", gData[i].id);
+          strcat(commandline, temp);
+          strcat(commandline, gData[i].unit);
+          strcat(commandline, "=");
+          snprintf(temp, SENSOR_TMP_SIZE, "%.3f ", gData[i].value);
+          strcat(commandline, temp);
+        }
+        syslog(LOG_DEBUG, "commandline: %s", commandline);
+        system(commandline);
       }
-      syslog(LOG_DEBUG, "commandline: %s", commandline);
-      system(commandline);
+      else
+      {
+        syslog(LOG_INFO, "retry frame for '%s', counter = %u", address, payload->counter);
+      }
       break;
 
     case SENSOR_PROTOCOL_DBG_TYPE:

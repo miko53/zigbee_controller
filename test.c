@@ -4,6 +4,8 @@
 #include "stdint.h"
 #include "unused.h"
 #include "configfile.h"
+#include "sensor_db.h"
+#include <assert.h>
 
 const uint8_t payload1[] = {0x0, 0x8, 0x3, 0x1, 0x3, 0x16, 0x2d, 0x2, 0x3, 0x1d, 0xf0, 0x3, 0x0, 0x1, 0xd3};
 const uint8_t payload2[] = {0x0, 0x5, 0x3, 0x1, 0x3, 0x17, 0x95, 0x2, 0x3, 0x13, 0x7b, 0x3, 0x3, 0x1, 0xcf};
@@ -45,6 +47,63 @@ int main (int argc, char* argv[])
     }
   }
 
+  zigbee_64bDestAddr addr;
+  addr[0] = 0;
+  addr[1] = 1;
+  addr[2] = 2;
+  addr[3] = 3;
+  addr[4] = 4;
+  addr[5] = 5;
+  addr[6] = 6;
+  addr[7] = 7;
+
+  bool isRetry;
+  isRetry = sensor_db_update(&addr, 0);
+  fprintf(stdout, "isRetry = %d\n", isRetry);
+  assert(isRetry == false);
+
+  isRetry = sensor_db_update(&addr, 0);
+  fprintf(stdout, "isRetry = %d\n", isRetry);
+  assert(isRetry == true);
+
+  isRetry = sensor_db_update(&addr, 1);
+  fprintf(stdout, "isRetry = %d\n", isRetry);
+  assert(isRetry == false);
+
+  zigbee_64bDestAddr addr2;
+  addr2[0] = 0;
+  addr2[1] = 10;
+  addr2[2] = 20;
+  addr2[3] = 30;
+  addr2[4] = 40;
+  addr2[5] = 55;
+  addr2[6] = 60;
+  addr2[7] = 70;
+
+  isRetry = sensor_db_update(&addr, 0);
+  fprintf(stdout, "isRetry = %d\n", isRetry);
+  assert(isRetry == false);
+
+
+  isRetry = sensor_db_update(&addr2, 0);
+  fprintf(stdout, "isRetry = %d\n", isRetry);
+  assert(isRetry == false);
+
+  isRetry = sensor_db_update(&addr, 10);
+  fprintf(stdout, "isRetry = %d\n", isRetry);
+  assert(isRetry == false);
+
+  isRetry = sensor_db_update(&addr2, 0);
+  fprintf(stdout, "isRetry = %d\n", isRetry);
+  assert(isRetry == true);
+
+  isRetry = sensor_db_update(&addr, 10);
+  fprintf(stdout, "isRetry = %d\n", isRetry);
+  assert(isRetry == true);
+
+  isRetry = sensor_db_update(&addr2, 255);
+  fprintf(stdout, "isRetry = %d\n", isRetry);
+  assert(isRetry == false);
 }
 
 
