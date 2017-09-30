@@ -22,6 +22,7 @@
 static int32_t configure(zigbee_obj* zigbee, zigbee_panID* panID, bool bWriteData);
 static void read_hardware_data(zigbee_obj* obj);
 static void run(zigbee_obj* zigbee);
+static void traceRFStrength(zb_handle_status statusH);
 static void onDataCallBack(zigbee_obj* obj, zigbee_decodedFrame* pFrame);
 
 #define ZB_BUFFER_SIZE      (100)
@@ -97,7 +98,7 @@ int main(int argc, char* argv[])
 
   zigbee_panID panID;
   uint32_t i;
-  for (i = 0; i < 8; i++)
+  for (i = 0; i < ZIGBEE_MAX_MAC_ADDRESS_NUMBER; i++)
   {
     panID[i] = config_panID[i];
   }
@@ -165,7 +166,11 @@ int main(int argc, char* argv[])
 static void run(zigbee_obj* zigbee)
 {
   uint32_t status;
+  zb_handle_status statusH;
   zigbee_panID currentPanID;
+  webmsg commandToSend;
+  bool hasReceivedCommand;
+
   status = zigbee_protocol_getPanID(zigbee, &currentPanID);
   if (status == 0)
   {
@@ -180,17 +185,33 @@ static void run(zigbee_obj* zigbee)
   syslog(LOG_INFO, "Ready, waiting for data reception");
   while (1)
   {
-    //TODO: here add code to read FIFO order
-
-    //     zb_handle_status statusH;
-    //     uint8_t signalStrenght;
-    /*statusH = */zigbee_handle(zigbee);
-    //     if (statusH == ZB_RX_FRAME_RECEIVED)
-    //     {
-    //       status = zigbee_protocol_getReceivedSignalStrength(zigbee, &signalStrenght);
-    //       syslog(LOG_INFO, "strenght of signal for the last frame reception: 0x%x\n", signalStrenght);
-    //     }
+    statusH = zigbee_handle(zigbee);
+    traceRFStrength(statusH);
+    hasReceivedCommand = webcmd_checkMsg(&commandToSend);
+    if (hasReceivedCommand)
+    {
+      //send command to xb device.
+      syslog(LOG_INFO, "Command received from web serveur (%x,%x,%x,%x,%x,%x,%x,%x):%d:%d",
+             commandToSend.zbAddress[0], commandToSend.zbAddress[1], commandToSend.zbAddress[2],
+             commandToSend.zbAddress[3], commandToSend.zbAddress[4], commandToSend.zbAddress[5],
+             commandToSend.zbAddress[6], commandToSend.zbAddress[7],
+             commandToSend.sensor_id, commandToSend.command);
+    }
   }
+}
+
+static void traceRFStrength(zb_handle_status statusH)
+{
+#ifdef TRACE_RF_STRENGTH
+  uint8_t signalStrenght;
+  if (statusH == ZB_RX_FRAME_RECEIVED)
+  {
+    status = zigbee_protocol_getReceivedSignalStrength(zigbee, &signalStrenght);
+    syslog(LOG_INFO, "strenght of signal for the last frame reception: 0x%x\n", signalStrenght);
+  }
+#else
+  UNUSED(statusH);
+#endif /* TRACE_RF_STRENGTH */
 }
 
 void onDataCallBack(zigbee_obj* obj, zigbee_decodedFrame* pFrame)
