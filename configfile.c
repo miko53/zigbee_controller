@@ -14,6 +14,7 @@ char* config_device;
 uint8_t* config_panID;
 uint32_t config_nbPanID;
 double config_altitude;
+char* config_fifo_name;
 
 static int32_t configfile_doRead(FILE* f);
 static int32_t configfile_decodeLine(char line[]);
@@ -23,6 +24,7 @@ int32_t configfile_read(const char filename[])
 {
   FILE* f;
   int32_t rc;
+  rc = -1;
 
   f = fopen(filename, "r");
   if (f == NULL)
@@ -285,6 +287,12 @@ static int32_t configfile_createConfig(char key[], char value[])
     {
       config_altitude = v;
     }
+  }
+  else if (strcmp(key, "fifo") == 0)
+  {
+    config_fifo_name = malloc(strlen(value) + 1);
+    assert(config_fifo_name != NULL);
+    strcpy(config_fifo_name, value);
   }
   else
   {

@@ -9,6 +9,7 @@
 #include <math.h>
 #include "unused.h"
 #include <syslog.h>
+#include <getopt.h>
 #include "configfile.h"
 #include "daemonize.h"
 #include "gpio.h"

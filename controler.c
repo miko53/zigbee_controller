@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <getopt.h>
 #include "zigbee_protocol.h"
 #include "display.h"
 #include <string.h>
@@ -16,6 +17,7 @@
 #include "configfile.h"
 #include "daemonize.h"
 #include "unused.h"
+#include "webcmd.h"
 
 static int32_t configure(zigbee_obj* zigbee, zigbee_panID* panID, bool bWriteData);
 static void read_hardware_data(zigbee_obj* obj);
@@ -55,18 +57,20 @@ int main(int argc, char* argv[])
       case 'c':
         configFile = optarg;
         break;
-        
+
       case 'w':
         bWriteConfig = true;
         break;
-        
+
       case 'b':
         baudRate = atoi(optarg); // Note: default speed of zigbee device is 9600
         break;
 
       case 'h':
       default:
-        fprintf(stderr, "usage : %s -c <config file> (-d -> for daemonize) -w --> write data on zb -b <initial serial speed, default:115200> \n", argv[0]);
+        fprintf(stderr,
+                "usage : %s -c <config file> (-d -> for daemonize) -w --> write data on zb -b <initial serial speed, default:115200> \n",
+                argv[0]);
         exit(EXIT_FAILURE);
     }
   }
@@ -83,7 +87,9 @@ int main(int argc, char* argv[])
     exit(EXIT_FAILURE);
   }
 
-  if ((config_scriptName == NULL) || (config_ttydevice == NULL) || (config_panID == NULL) || (config_gpio_reset == NULL))
+  if ((config_scriptName == NULL) || (config_ttydevice == NULL) || (config_panID == NULL) || (config_gpio_reset == NULL)
+      ||
+      (config_fifo_name == NULL))
   {
     fprintf(stderr, "config file is not complete\n");
     exit(EXIT_FAILURE);
@@ -111,6 +117,13 @@ int main(int argc, char* argv[])
   if (fd < 0)
   {
     syslog(LOG_EMERG, "not possible to configurate serial line '%s'", config_ttydevice);
+    exit(EXIT_FAILURE);
+  }
+
+  bool bok = webcmd_init(config_fifo_name);
+  if (!bok)
+  {
+    //log already printed, not necc.
     exit(EXIT_FAILURE);
   }
 
@@ -167,14 +180,16 @@ static void run(zigbee_obj* zigbee)
   syslog(LOG_INFO, "Ready, waiting for data reception");
   while (1)
   {
-    zb_handle_status statusH;
+    //TODO: here add code to read FIFO order
+
+    //     zb_handle_status statusH;
     //     uint8_t signalStrenght;
-    statusH = zigbee_handle(zigbee);
-    if (statusH == ZB_RX_FRAME_RECEIVED)
-    {
-      //       status = zigbee_protocol_getReceivedSignalStrength(zigbee, &signalStrenght);
-      //       syslog(LOG_INFO, "strenght of signal for the last frame reception: 0x%x\n", signalStrenght);
-    }
+    /*statusH = */zigbee_handle(zigbee);
+    //     if (statusH == ZB_RX_FRAME_RECEIVED)
+    //     {
+    //       status = zigbee_protocol_getReceivedSignalStrength(zigbee, &signalStrenght);
+    //       syslog(LOG_INFO, "strenght of signal for the last frame reception: 0x%x\n", signalStrenght);
+    //     }
   }
 }
 

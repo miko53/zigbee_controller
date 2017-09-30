@@ -9,12 +9,13 @@
 #define ZIGBEE_DEFAULT_SCAN_DURATION_EXPONENT (3)
 #define ZIGBEE_DEFAULT_STACK_PROFILE          (0)
 #define ZIGBEE_DEFAULT_ENCRYPTION_OPTION      (0)
+#define ZIGBEE_MAX_MAC_ADDRESS_NUMBER         (8)
 
-typedef uint8_t zigbee_panID[8];
+typedef uint8_t zigbee_panID[ZIGBEE_MAX_MAC_ADDRESS_NUMBER];
 typedef uint8_t zigbee_encryptionKey[16];
 typedef uint8_t zigbee_linkKey[16];
 
-typedef uint8_t zigbee_64bDestAddr[8];
+typedef uint8_t zigbee_64bDestAddr[ZIGBEE_MAX_MAC_ADDRESS_NUMBER];
 
 typedef enum
 {

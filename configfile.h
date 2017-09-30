@@ -12,6 +12,7 @@ extern char* config_ttydevice;
 extern char* config_gpio_reset;
 extern char* config_device;
 extern double config_altitude;
+extern char* config_fifo_name;
 
 extern int32_t configfile_read(const char filename[]);
 

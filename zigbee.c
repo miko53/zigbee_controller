@@ -42,6 +42,7 @@ typedef enum
   AT_SET_NUMBER_OF_SLEEP_PERIOD,
   AT_SET_SLEEP_PERIOD,
   AT_WRITE,
+  AT_FORCE_DISASSOCIATION,
   AT_NB_COMMAND,
 } zigbee_AT_COMMAND_LIST;
 
@@ -74,7 +75,8 @@ const char* zigbee_AT_COMMAND[AT_NB_COMMAND] =
   /* AT_SET_BAUD_RATE            */ "BD",
   /* AT_SET_NUMBER_OF_SLEEP_PERIOD*/ "SN",
   /* AT_SET_SLEEP_PERIOD*/           "SP",
-  /* AT_WRITE */                     "WR"
+  /* AT_WRITE */                     "WR",
+  /*AT_FORCE_DISASSOCIATION*/        "DA",
 };
 
 static uint8_t zigbee_doChecksum(uint8_t* frame, uint32_t size);

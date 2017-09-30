@@ -26,11 +26,19 @@ typedef struct
 
 typedef struct
 {
+  uint8_t v1;
+  uint8_t v2;
+  uint8_t v3;
+} __attribute__((packed)) sensorDbgFrameStruct;
+
+typedef struct
+{
   uint8_t dataType;
   uint8_t counter;
   union
   {
     sensorFrameStruct frame;
+    sensorDbgFrameStruct dbgFrame;
   };
 } __attribute__((packed)) zb_payload_frame;
 
@@ -78,17 +86,14 @@ void sensor_readAndProvideSensorData(zigbee_decodedFrame* decodedData, const cha
 
   zb_payload_frame* payload = (zb_payload_frame*) decodedData->receivedPacket.payload;
 
+  sensor_buildAddress(&decodedData->receivedPacket.receiver64bAddr, address, SENSOR_TMP_SIZE);
   switch (payload->dataType)
   {
     case SENSOR_PROTOCOL_DATA_TYPE:
-
-      sensor_buildAddress(&decodedData->receivedPacket.receiver64bAddr, address, SENSOR_TMP_SIZE);
-
       isRetry = sensor_db_update(&decodedData->receivedPacket.receiver64bAddr, payload->counter);
       if (isRetry == false)
       {
         sensor_readData(payload);
-
         snprintf(commandline, SENSOR_CMD_LINE_SIZE, "%s address=", scriptExe);
         strcat(commandline, address);
         strcat(commandline, " ");
@@ -113,6 +118,8 @@ void sensor_readAndProvideSensorData(zigbee_decodedFrame* decodedData, const cha
       break;
 
     case SENSOR_PROTOCOL_DBG_TYPE:
+      syslog(LOG_INFO, "dbg frame for '%s', buffer = 0x%x - 0x%x - 0x%x", address, payload->dbgFrame.v1, payload->dbgFrame.v2,
+             payload->dbgFrame.v3);
       break;
 
     default:

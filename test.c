@@ -6,6 +6,8 @@
 #include "configfile.h"
 #include "sensor_db.h"
 #include <assert.h>
+#include "webcmd.h"
+#include <string.h>
 
 const uint8_t payload1[] = {0x0, 0x8, 0x3, 0x1, 0x3, 0x16, 0x2d, 0x2, 0x3, 0x1d, 0xf0, 0x3, 0x0, 0x1, 0xd3};
 const uint8_t payload2[] = {0x0, 0x5, 0x3, 0x1, 0x3, 0x17, 0x95, 0x2, 0x3, 0x13, 0x7b, 0x3, 0x3, 0x1, 0xcf};
@@ -104,6 +106,31 @@ int main (int argc, char* argv[])
   isRetry = sensor_db_update(&addr2, 255);
   fprintf(stdout, "isRetry = %d\n", isRetry);
   assert(isRetry == false);
+
+
+  bool bCorrectlyDecoded;
+  char message[255];
+  webmsg msg;
+  const char* pMsg = "xb@00:13:a2:00:40:d9:68:9c;3;ECO\n";
+  zigbee_64bDestAddr zbAddr;
+  zbAddr[0] = 0;
+  zbAddr[1] = 0x13;
+  zbAddr[2] = 0xa2;
+  zbAddr[3] = 0;
+  zbAddr[4] = 0x40;
+  zbAddr[5] = 0xd9;
+  zbAddr[6] = 0x68;
+  zbAddr[7] = 0x9c;
+  strcpy(message, pMsg);
+
+  bCorrectlyDecoded = webcmd_decodeFrame(message, sizeof(pMsg), &msg);
+  assert(bCorrectlyDecoded == true);
+  assert(msg.command == ECO);
+  assert(msg.sensor_id = 3);
+  for (uint32_t i = 0; i < ZIGBEE_MAX_MAC_ADDRESS_NUMBER; i++)
+  {
+    assert(msg.zbAddress[i] == zbAddr[i]);
+  }
 }
 
 
