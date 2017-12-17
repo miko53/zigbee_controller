@@ -9,6 +9,7 @@
 #include <syslog.h>
 #include <stdlib.h>
 #include "sensor_db.h"
+#include "webcmd.h"
 
 typedef struct
 {
@@ -53,6 +54,7 @@ typedef enum
   SENSOR_HYT221_TEMP = 0x01,
   SENSOR_HYT221_HUM = 0x02,
   SENSOR_VOLTAGE = 0x03,
+  ACT_HEATER = 0x81
 } sensor_Type;
 
 #define SENSOR_MAX  (100)
@@ -60,11 +62,22 @@ typedef enum
 #define SENSOR_TMP_SIZE (50)
 #define HEX_SIZE  (3)
 
+typedef enum
+{
+  DOUBLE,
+  STRING
+} sensor_data_type;
+
 typedef struct
 {
   uint8_t id;
   char* unit;
-  double value;
+  sensor_data_type type;
+  union
+  {
+    double value;
+    const char* sValue;
+  };
 } sensorDataForScript;
 
 
@@ -105,7 +118,21 @@ void sensor_readAndProvideSensorData(zigbee_decodedFrame* decodedData, const cha
           strcat(commandline, temp);
           strcat(commandline, gData[i].unit);
           strcat(commandline, "=");
-          snprintf(temp, SENSOR_TMP_SIZE, "%.3f ", gData[i].value);
+          switch (gData[i].type)
+          {
+            case DOUBLE:
+              snprintf(temp, SENSOR_TMP_SIZE, "%.3f ", gData[i].value);
+              break;
+
+            case STRING:
+              snprintf(temp, SENSOR_TMP_SIZE, "%s ", gData[i].sValue);
+              break;
+
+            default:
+              //not possible, decoded earlier...
+              assert(false);
+              break;
+          }
           strcat(commandline, temp);
         }
         syslog(LOG_DEBUG, "commandline: %s", commandline);
@@ -173,6 +200,7 @@ static void sensor_readData(zb_payload_frame* payload)
           temp_raw = ntohs(payload->frame.sensors[id].data);
           temp = ((165.0 * temp_raw) / 16383.0) - 40.0;
           gData[gIndex].id = id;
+          gData[gIndex].type = DOUBLE;
           gData[gIndex].value = temp;
           gData[gIndex].unit = "temp";
           gIndex++;
@@ -185,6 +213,7 @@ static void sensor_readData(zb_payload_frame* payload)
           humidity_raw = ntohs(payload->frame.sensors[id].data);
           humidity = (100.0 * humidity_raw) / 16383.0;
           gData[gIndex].id = id;
+          gData[gIndex].type = DOUBLE;
           gData[gIndex].value = humidity;
           gData[gIndex].unit = "humd";
           gIndex++;
@@ -198,9 +227,49 @@ static void sensor_readData(zb_payload_frame* payload)
           batt = (batt_raw * 3.3) / 1023.0;
           batt = (batt * (2.2 + 4.7)) / 2.2;
           gData[gIndex].id = id;
+          gData[gIndex].type = DOUBLE;
           gData[gIndex].value = batt;
           gData[gIndex].unit = "volt";
           gIndex++;
+        }
+        break;
+
+      case ACT_HEATER:
+        if (payload->frame.sensors[id].status == 0x03)
+        {
+          bool bOk;
+          bOk = true;
+          switch (ntohs(payload->frame.sensors[id].data))
+          {
+            case CONFORT:
+              gData[gIndex].sValue = "CONFORT";
+              break;
+
+            case ECO:
+              gData[gIndex].sValue = "ECO";
+              break;
+
+            case HG:
+              gData[gIndex].sValue = "HG";
+              break;
+
+            case STOP:
+              gData[gIndex].sValue = "STOP";
+              break;
+
+            default:
+              bOk = false;
+              syslog(LOG_INFO, "unable to decode heat value %d. Skypping...", ntohs(payload->frame.sensors[id].data));
+              break;
+          }
+
+          if (bOk)
+          {
+            gData[gIndex].id = id;
+            gData[gIndex].type = STRING;
+            gData[gIndex].unit = "heat";
+            gIndex++;
+          }
         }
         break;
 
