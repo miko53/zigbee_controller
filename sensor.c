@@ -239,7 +239,7 @@ static void sensor_readData(zb_payload_frame* payload)
         {
           bool bOk;
           bOk = true;
-          switch (ntohs(payload->frame.sensors[id].data))
+          switch (ntohs(payload->frame.sensors[id].data) & 0x00FF)
           {
             case CONFORT:
               gData[gIndex].sValue = "CONFORT";
@@ -265,7 +265,7 @@ static void sensor_readData(zb_payload_frame* payload)
 
           if (bOk)
           {
-            gData[gIndex].id = id;
+            gData[gIndex].id = (ntohs(payload->frame.sensors[id].data) & 0xFF00) >> 8;
             gData[gIndex].type = STRING;
             gData[gIndex].unit = "heat";
             gIndex++;
@@ -278,5 +278,111 @@ static void sensor_readData(zb_payload_frame* payload)
     }
   }
 }
+
+#define SENSOR_PROTOCOL_DATA_TYPE   (0x00)
+
+
+uint32_t sensor_build_command(webmsg* receivedCmd, uint8_t buffer[], uint32_t size)
+{
+  uint32_t currentSize;
+  static uint32_t counter;
+  bool bOk;
+
+  bOk = true;
+  currentSize = 0;
+
+  //begin by the header.
+  if ((currentSize + 1) <= size)
+  {
+    buffer[currentSize] = SENSOR_PROTOCOL_DATA_TYPE;
+    currentSize++;
+  }
+  else
+  {
+    bOk = false;
+  }
+
+
+  if (bOk && ((currentSize + 1) <= size))
+  {
+    buffer[currentSize] = counter;
+    counter++;
+    currentSize++;
+  }
+  else
+  {
+    bOk = false;
+  }
+
+  //insert nb of sensor command
+  if (bOk && ((currentSize + 1) <= size))
+  {
+    buffer[currentSize] = 1;
+    counter++;
+    currentSize++;
+  }
+  else
+  {
+    bOk = false;
+  }
+
+  //insert type of actuator
+  if (bOk && ((currentSize + 1) <= size))
+  {
+    buffer[currentSize] = ACT_HEATER;
+    counter++;
+    currentSize++;
+  }
+  else
+  {
+    bOk = false;
+  }
+
+  //insert status (don't care)
+  if (bOk && ((currentSize + 1) <= size))
+  {
+    buffer[currentSize] = 0;
+    counter++;
+    currentSize++;
+  }
+  else
+  {
+    bOk = false;
+  }
+
+  //insert id
+  if (bOk && ((currentSize + 1) <= size))
+  {
+    buffer[currentSize] = receivedCmd->sensor_id;
+    counter++;
+    currentSize++;
+  }
+  else
+  {
+    bOk = false;
+  }
+
+  //insert finally cmd
+  if (bOk && ((currentSize + 1) <= size))
+  {
+    buffer[currentSize] = receivedCmd->command;
+    counter++;
+    currentSize++;
+  }
+  else
+  {
+    bOk = false;
+  }
+
+  if (!bOk)
+  {
+    currentSize = 0;
+  }
+
+  return currentSize;
+}
+
+
+
 
 

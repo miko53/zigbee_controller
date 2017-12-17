@@ -162,6 +162,7 @@ int main(int argc, char* argv[])
   return EXIT_SUCCESS;
 }
 
+#define MAX_SIZE_FRAME (50)
 
 static void run(zigbee_obj* zigbee)
 {
@@ -170,6 +171,7 @@ static void run(zigbee_obj* zigbee)
   zigbee_panID currentPanID;
   webmsg commandToSend;
   bool hasReceivedCommand;
+  uint8_t zbPayload[MAX_SIZE_FRAME];
 
   status = zigbee_protocol_getPanID(zigbee, &currentPanID);
   if (status == 0)
@@ -196,6 +198,21 @@ static void run(zigbee_obj* zigbee)
              commandToSend.zbAddress[3], commandToSend.zbAddress[4], commandToSend.zbAddress[5],
              commandToSend.zbAddress[6], commandToSend.zbAddress[7],
              commandToSend.sensor_id, commandToSend.command);
+
+      uint32_t size;
+      size = sensor_build_command(&commandToSend, zbPayload, MAX_SIZE_FRAME);
+      if (size != 0)
+      {
+        zigbee_protocol_sendData(zigbee,
+                                 &commandToSend.zbAddress,
+                                 ZIGBEE_UNKNOWN_16B_ADDR,
+                                 zbPayload,
+                                 size);
+      }
+      else
+      {
+        syslog(LOG_INFO, "can't send data 'sensor_build_command' returns 0");
+      }
     }
   }
 }

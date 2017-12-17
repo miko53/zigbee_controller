@@ -80,6 +80,7 @@ static bool webcmd_readAndPrepareReply(webmsg* msg)
   nbRead = read(webcmd_fd, message, 255);
   if (nbRead > 0)
   {
+    //syslog(LOG_INFO, "received from web : %s", message);
     bCorrectlyDecoded = webcmd_decodeFrame(message, nbRead, msg);
     if (bCorrectlyDecoded == false)
     {
