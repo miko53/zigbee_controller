@@ -21,6 +21,8 @@ typedef struct
 typedef enum
 {
   CONFORT,
+  CONFORT_M1,
+  CONFORT_M2,
   ECO,
   HG,
   STOP

@@ -147,6 +147,14 @@ bool webcmd_decodeFrame(char message[], ssize_t size, webmsg* msg)
           {
             msg->command = CONFORT;
           }
+          else if (strcmp(token, "CONFORT_M1") == 0)
+          {
+            msg->command = CONFORT_M1;
+          }
+          else if (strcmp(token, "CONFORT_M2") == 0)
+          {
+            msg->command = CONFORT_M2;
+          }
           else if (strcmp(token, "ECO") == 0)
           {
             msg->command = ECO;

@@ -245,6 +245,14 @@ static void sensor_readData(zb_payload_frame* payload)
               gData[gIndex].sValue = "CONFORT";
               break;
 
+            case CONFORT_M1:
+              gData[gIndex].sValue = "CONFORT_M1";
+              break;
+
+            case CONFORT_M2:
+              gData[gIndex].sValue = "CONFORT_M2";
+              break;
+
             case ECO:
               gData[gIndex].sValue = "ECO";
               break;
