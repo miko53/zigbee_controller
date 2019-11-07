@@ -84,7 +84,7 @@ static int32_t configfile_decodeLine(char line[])
   int32_t rc;
   uint32_t index;
   char* key;
-  char* value;
+  char* value = NULL;
   int64_t state;
   bool bEndDecoding;
   char currentChar;

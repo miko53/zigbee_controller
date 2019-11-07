@@ -14,24 +14,71 @@
 
 static char* webcmd_fifo;
 static int32_t webcmd_fd = -1;
+static FILE* webcmd_file = NULL;
 
-static bool webcmd_readAndPrepareReply(webmsg* msg);
+#define     MESSAGE_NB_MAX    (50)
+
+typedef struct
+{
+  webmsg message[MESSAGE_NB_MAX];
+  int indexRead;
+  int indexWrite;
+  int nbItems;
+} webmsg_msg;
+
+static webmsg_msg web_receivedMessage;
+
+static void webcmd_readReceivedMessage(void);
 static bool webcmd_decodeAddress(char message[], zigbee_64bDestAddr* zbAddress);
 static bool webcmd_decodeMacAddress(char message[], zigbee_64bDestAddr* zbAddress);
+static bool webcmd_insertFrame(webmsg* msg);
 
 bool webcmd_init(char* fifo)
 {
   bool initOk;
   initOk = true;
   webcmd_fifo = fifo;
-  webcmd_fd = open(fifo, O_RDWR);
+  webcmd_fd = open(fifo, O_RDWR | O_NONBLOCK);
   if (webcmd_fd == -1)
   {
     syslog(LOG_EMERG, "unable to open '%s' ", fifo);
     initOk = false;
   }
+  else
+  {
+    webcmd_file = fdopen(webcmd_fd, "r+");
+    if (webcmd_file == NULL)
+    {
+      syslog(LOG_EMERG, "unable to create FIFO stream");
+      initOk = false;
+    }
+  }
+
+  web_receivedMessage.indexRead = 0;
+  web_receivedMessage.indexWrite = 0;
+  web_receivedMessage.nbItems = 0;
 
   return initOk;
+}
+
+bool webcmd_getMessage(webmsg* msg)
+{
+  bool hasMessage;
+  hasMessage = false;
+
+  if (web_receivedMessage.nbItems > 0)
+  {
+    hasMessage = true;
+    *msg = web_receivedMessage.message[web_receivedMessage.indexRead];
+    web_receivedMessage.nbItems--;
+    web_receivedMessage.indexRead++;
+    if (web_receivedMessage.indexRead > MESSAGE_NB_MAX)
+    {
+      web_receivedMessage.indexRead = 0;
+    }
+  }
+
+  return hasMessage;
 }
 
 bool webcmd_checkMsg(webmsg* msg)
@@ -42,64 +89,97 @@ bool webcmd_checkMsg(webmsg* msg)
   bool hasMsg;
   hasMsg = false;
 
-  waitTime.tv_sec = 0;
-  waitTime.tv_usec = 0;
-  FD_ZERO(&rfs);
-  FD_SET(webcmd_fd, &rfs);
+  hasMsg = webcmd_getMessage(msg);
+  if (hasMsg == false)
+  {
+    waitTime.tv_sec = 0;
+    waitTime.tv_usec = 0;
+    FD_ZERO(&rfs);
+    FD_SET(webcmd_fd, &rfs);
 
-  nb_fd = select(webcmd_fd + 1, &rfs, NULL, NULL, &waitTime);
-  if (nb_fd > 0)
-  {
-    if (FD_ISSET(webcmd_fd, &rfs))
+    nb_fd = select(webcmd_fd + 1, &rfs, NULL, NULL, &waitTime);
+    if (nb_fd > 0)
     {
-      hasMsg = webcmd_readAndPrepareReply(msg);
+      if (FD_ISSET(webcmd_fd, &rfs))
+      {
+        webcmd_readReceivedMessage();
+      }
     }
-  }
-  else if (nb_fd == 0)
-  {
-    //no data
-  }
-  else
-  {
-    // error
-    syslog(LOG_INFO, "select error on FIFO, reopen it");
-    close(webcmd_fd);
-    webcmd_init(webcmd_fifo);
+    else if (nb_fd == 0)
+    {
+      //no data
+    }
+    else
+    {
+      // error
+      syslog(LOG_INFO, "select error on FIFO, reopen it");
+      close(webcmd_fd);
+      webcmd_init(webcmd_fifo);
+    }
+    hasMsg = webcmd_getMessage(msg);
   }
 
   return hasMsg;
 }
 
+#define MESSAGE_MAX_SIZE        (512)
 
-static bool webcmd_readAndPrepareReply(webmsg* msg)
+static void webcmd_readReceivedMessage(void)
 {
-  char message[256];
+  char message[MESSAGE_MAX_SIZE];
+  webmsg msg;
   ssize_t nbRead;
-  bool bCorrectlyDecoded;
-  bCorrectlyDecoded = false;
-  nbRead = read(webcmd_fd, message, 255);
-  if (nbRead > 0)
+  bool bReceivedOk;
+  char* msgReceived;
+
+  nbRead = 0;
+  bReceivedOk = false;
+
+  msgReceived = fgets(message, MESSAGE_MAX_SIZE - 2, webcmd_file);
+  message[MESSAGE_MAX_SIZE - 1] = '\0';
+
+  while (msgReceived != NULL)
   {
-    //syslog(LOG_INFO, "received from web : %s", message);
-    bCorrectlyDecoded = webcmd_decodeFrame(message, nbRead, msg);
-    if (bCorrectlyDecoded == false)
+    syslog(LOG_INFO, "received from web : %s", message);
+    bReceivedOk = webcmd_decodeFrame(message, nbRead, &msg);
+    if (bReceivedOk == true)
+    {
+      bReceivedOk = webcmd_insertFrame(&msg);
+      if (!bReceivedOk)
+      {
+        syslog(LOG_EMERG, "unable to insert frame in FIFO");
+      }
+    }
+    else
     {
       syslog(LOG_INFO, "frame decoding error");
     }
+    msgReceived = fgets(message, MESSAGE_MAX_SIZE - 2, webcmd_file);
   }
-  else if (nbRead < 0)
+}
+
+static bool webcmd_insertFrame(webmsg* msg)
+{
+  bool bOk;
+  bOk = true;
+
+  if (web_receivedMessage.nbItems < MESSAGE_NB_MAX)
   {
-    syslog(LOG_INFO, "read error on FIFO");
+    web_receivedMessage.message[web_receivedMessage.indexWrite] = *msg;
+    web_receivedMessage.indexWrite++;
+    web_receivedMessage.nbItems++;
+    if (web_receivedMessage.indexWrite > MESSAGE_NB_MAX)
+    {
+      web_receivedMessage.indexWrite = 0;
+    }
   }
   else
   {
-    //not possible
-    ;
+    bOk = false;
   }
 
-  return bCorrectlyDecoded;
+  return bOk;
 }
-
 
 bool webcmd_decodeFrame(char message[], ssize_t size, webmsg* msg)
 {

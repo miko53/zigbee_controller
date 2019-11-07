@@ -111,7 +111,7 @@ int main (int argc, char* argv[])
   bool bCorrectlyDecoded;
   char message[255];
   webmsg msg;
-  const char* pMsg = "xb@00:13:a2:00:40:d9:68:9c;3;ECO\n";
+  const char* pMsg = "xb@00:13:a2:00:40:d9:68:9c;3;ECO\nxb@00:13:a2:00:40:d9:68:9d;3;CONFORT\n";
   zigbee_64bDestAddr zbAddr;
   zbAddr[0] = 0;
   zbAddr[1] = 0x13;
