@@ -72,7 +72,7 @@ bool webcmd_getMessage(webmsg* msg)
     *msg = web_receivedMessage.message[web_receivedMessage.indexRead];
     web_receivedMessage.nbItems--;
     web_receivedMessage.indexRead++;
-    if (web_receivedMessage.indexRead > MESSAGE_NB_MAX)
+    if (web_receivedMessage.indexRead >= MESSAGE_NB_MAX)
     {
       web_receivedMessage.indexRead = 0;
     }
@@ -168,7 +168,7 @@ static bool webcmd_insertFrame(webmsg* msg)
     web_receivedMessage.message[web_receivedMessage.indexWrite] = *msg;
     web_receivedMessage.indexWrite++;
     web_receivedMessage.nbItems++;
-    if (web_receivedMessage.indexWrite > MESSAGE_NB_MAX)
+    if (web_receivedMessage.indexWrite >= MESSAGE_NB_MAX)
     {
       web_receivedMessage.indexWrite = 0;
     }

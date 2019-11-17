@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include "sensor.h"
 #include "stdint.h"
+#include <stdlib.h>
 #include "unused.h"
 #include "configfile.h"
 #include "sensor_db.h"
@@ -9,6 +10,57 @@
 #include "webcmd.h"
 #include <string.h>
 
+int main(int argc, char* argv[])
+{
+  webmsg commandToSend;
+  bool hasReceivedCommand;
+
+  bool bOk = webcmd_init("fifo_test");
+  if (!bOk)
+  {
+    fprintf(stderr, "unable to open fifo_test\n");
+  }
+
+  while (1)
+  {
+    hasReceivedCommand = webcmd_checkMsg(&commandToSend);
+    if (hasReceivedCommand)
+    {
+      //send command to xb device.
+      fprintf(stdout, "Command received from web serveur (%x,%x,%x,%x,%x,%x,%x,%x):%d:%d\n",
+              commandToSend.zbAddress[0], commandToSend.zbAddress[1], commandToSend.zbAddress[2],
+              commandToSend.zbAddress[3], commandToSend.zbAddress[4], commandToSend.zbAddress[5],
+              commandToSend.zbAddress[6], commandToSend.zbAddress[7],
+              commandToSend.sensor_id, commandToSend.command);
+
+      /*uint32_t size;
+      size = sensor_build_command(&commandToSend, zbPayload, MAX_SIZE_FRAME);
+      if (size != 0)
+      {
+        zigbee_protocol_sendData(zigbee,
+                                 &commandToSend.zbAddress,
+                                 ZIGBEE_UNKNOWN_16B_ADDR,
+                                 zbPayload,
+                                 size);
+      }
+      else
+      {
+        fprintf(stdout, "can't send data 'sensor_build_command' returns 0\n");
+      }*/
+    }
+    else
+    {
+      fprintf(stdout, "not received\n");
+    }
+    usleep(500000);
+  }
+
+
+  return EXIT_SUCCESS;
+}
+
+
+#if 0
 const uint8_t payload1[] = {0x0, 0x8, 0x3, 0x1, 0x3, 0x16, 0x2d, 0x2, 0x3, 0x1d, 0xf0, 0x3, 0x0, 0x1, 0xd3};
 const uint8_t payload2[] = {0x0, 0x5, 0x3, 0x1, 0x3, 0x17, 0x95, 0x2, 0x3, 0x13, 0x7b, 0x3, 0x3, 0x1, 0xcf};
 
@@ -126,7 +178,7 @@ int main (int argc, char* argv[])
   bCorrectlyDecoded = webcmd_decodeFrame(message, sizeof(pMsg), &msg);
   assert(bCorrectlyDecoded == true);
   assert(msg.command == ECO);
-  assert(msg.sensor_id = 3);
+  assert(msg.sensor_id == 3);
   for (uint32_t i = 0; i < ZIGBEE_MAX_MAC_ADDRESS_NUMBER; i++)
   {
     assert(msg.zbAddress[i] == zbAddr[i]);
@@ -134,3 +186,4 @@ int main (int argc, char* argv[])
 }
 
 
+#endif
