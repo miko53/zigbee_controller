@@ -78,6 +78,7 @@ extern uint32_t zigbee_encode_setNumberOfSleepPeriod(uint8_t* buffer, uint32_t s
     uint16_t nSleepPeriod);
 extern uint32_t zigbee_encode_setSleepPeriod(uint8_t* buffer, uint32_t size, uint8_t frameID, uint16_t sleepPeriod);
 
+extern uint32_t zigbee_encode_getOperatingChannel(uint8_t* buffer, uint32_t size, uint8_t frameID);
 
 extern uint32_t zigbee_encode_transmitRequest(uint8_t* buffer, uint32_t sizeBuffer, uint8_t frameID,
     zigbee_64bDestAddr* destAddr64b, uint16_t destAddr16b, uint8_t* payload, uint8_t size);

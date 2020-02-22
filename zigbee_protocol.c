@@ -565,6 +565,31 @@ zb_status zigbee_protocol_getPanID(zigbee_obj* obj, zigbee_panID* panID)
   return status;
 }
 
+
+zb_status zigbee_protocol_getOperatingChannel(zigbee_obj* obj, uint8_t* operatingChannel)
+{
+  zb_handle_status handle_status;
+  zb_status status;
+
+  assert(obj != NULL);
+  status = ZB_CMD_FAILED;
+
+  zigbee_protocol_incrementFrameID(obj);
+  obj->sizeOfFrameToSend = zigbee_encode_getOperatingChannel(obj->frame, 50, obj->frameID);
+  obj->atReplyExpected = true;
+
+  handle_status = zigbee_handle(obj);
+  if ((handle_status == ZB_AT_REPLY_RECEIVED) &&
+      (obj->decodedData.atCmd.status == 0))
+  {
+    status = ZB_CMD_SUCCESS;
+    *operatingChannel = obj->decodedData.atCmd.data[0];
+  }
+
+  return status;
+}
+
+
 zb_status zigbee_protocol_getMaxRFPayloadBytes(zigbee_obj* obj, uint16_t* maxRFPayloadBytes)
 {
   zb_handle_status handle_status;

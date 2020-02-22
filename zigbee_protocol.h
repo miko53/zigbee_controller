@@ -65,6 +65,8 @@ extern zb_status zigbee_protocol_applyChanges(zigbee_obj* obj);
 extern zb_status zigbee_protocol_write(zigbee_obj* obj);
 
 extern zb_status zigbee_protocol_getPanID(zigbee_obj* obj, zigbee_panID* panID);
+extern zb_status zigbee_protocol_getOperatingChannel(zigbee_obj* obj, uint8_t* operatingChannel);
+
 extern zb_status zigbee_protocol_getMaxRFPayloadBytes(zigbee_obj* obj, uint16_t* maxRFPayloadBytes);
 extern zb_status zigbee_protocol_getReceivedSignalStrength(zigbee_obj* obj, uint8_t* signalStrenght);
 extern zb_status zigbee_protocol_sendData(zigbee_obj* obj, zigbee_64bDestAddr* destAddr64b, uint16_t destAddr16b,

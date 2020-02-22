@@ -43,6 +43,7 @@ typedef enum
   AT_SET_SLEEP_PERIOD,
   AT_WRITE,
   AT_FORCE_DISASSOCIATION,
+  AT_OPERATING_CHANNEL,
   AT_NB_COMMAND,
 } zigbee_AT_COMMAND_LIST;
 
@@ -76,7 +77,8 @@ const char* zigbee_AT_COMMAND[AT_NB_COMMAND] =
   /* AT_SET_NUMBER_OF_SLEEP_PERIOD*/ "SN",
   /* AT_SET_SLEEP_PERIOD*/           "SP",
   /* AT_WRITE */                     "WR",
-  /*AT_FORCE_DISASSOCIATION*/        "DA",
+  /* AT_FORCE_DISASSOCIATION */      "DA",
+  /* AT_OPERATING_CHANNEL */         "CH",
 };
 
 static uint8_t zigbee_doChecksum(uint8_t* frame, uint32_t size);
@@ -161,6 +163,15 @@ uint32_t zigbee_encode_getPanID(uint8_t* buffer, uint32_t size, uint8_t frameID)
     zigbee_encode_ATcmd(buffer, size,
                         frameID,
                         zigbee_AT_COMMAND[AT_GET_PAN_ID],
+                        NULL, 0);
+}
+
+uint32_t zigbee_encode_getOperatingChannel(uint8_t* buffer, uint32_t size, uint8_t frameID)
+{
+  return
+    zigbee_encode_ATcmd(buffer, size,
+                        frameID,
+                        zigbee_AT_COMMAND[AT_OPERATING_CHANNEL],
                         NULL, 0);
 }
 

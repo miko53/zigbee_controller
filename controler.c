@@ -169,6 +169,7 @@ static void run(zigbee_obj* zigbee)
   uint32_t status;
   zb_handle_status statusH;
   zigbee_panID currentPanID;
+  uint8_t operatingChannel;
   webmsg commandToSend;
   bool hasReceivedCommand;
   uint8_t zbPayload[MAX_SIZE_FRAME];
@@ -182,6 +183,12 @@ static void run(zigbee_obj* zigbee)
     //     status = zigbee_protocol_getMaxRFPayloadBytes(&zigbee, &maxRFPayloadBytes);
     //
     //     fprintf(stdout, "maxRFPayloadBytes = %d\n", maxRFPayloadBytes);
+  }
+
+  status = zigbee_protocol_getOperatingChannel(zigbee, &operatingChannel);
+  if (status == 0)
+  {
+    syslog(LOG_INFO, "operatingChannel = %d", operatingChannel);
   }
 
   syslog(LOG_INFO, "Ready, waiting for data reception");
