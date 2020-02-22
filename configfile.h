@@ -13,6 +13,7 @@ extern char* config_gpio_reset;
 extern char* config_device;
 extern double config_altitude;
 extern char* config_fifo_name;
+extern uint16_t config_scan_channel;
 
 extern int32_t configfile_read(const char filename[]);
 

@@ -19,7 +19,7 @@
 #include "unused.h"
 #include "webcmd.h"
 
-static int32_t configure(zigbee_obj* zigbee, zigbee_panID* panID, bool bWriteData);
+static int32_t configure(zigbee_obj* zigbee, zigbee_panID* panID, uint16_t scan_channel, bool bWriteData);
 static void read_hardware_data(zigbee_obj* obj);
 static void run(zigbee_obj* zigbee);
 static void traceRFStrength(zb_handle_status statusH);
@@ -131,7 +131,7 @@ int main(int argc, char* argv[])
   zigbee_protocol_initialize(&zigbee, fd, zb_buffer, ZB_BUFFER_SIZE, onDataCallBack);
   read_hardware_data(&zigbee);
 
-  status = configure(&zigbee, &panID, bWriteConfig);
+  status = configure(&zigbee, &panID, config_scan_channel, bWriteConfig);
   if (status == 0)
   {
     status = zigbee_protocol_setNodeIdentifier(&zigbee, "ZBC1");
@@ -245,14 +245,14 @@ void onDataCallBack(zigbee_obj* obj, zigbee_decodedFrame* pFrame)
 }
 
 
-static int32_t configure(zigbee_obj* zigbee, zigbee_panID* panID, bool bWriteData)
+static int32_t configure(zigbee_obj* zigbee, zigbee_panID* panID, uint16_t scan_channel, bool bWriteData)
 {
   zigbee_config config;
   zb_status status;
   int32_t rc;
 
   memcpy(&config.panID, panID, sizeof(zigbee_panID));
-  config.channelBitMask = ZIGGEE_DEFAULT_BITMASK;
+  config.channelBitMask = scan_channel;
   config.scanDuration = ZIGBEE_DEFAULT_SCAN_DURATION_EXPONENT;
   config.stackProfile = ZIGBEE_DEFAULT_STACK_PROFILE;
   config.encryption = false;

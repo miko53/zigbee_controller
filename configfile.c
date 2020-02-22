@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
+#include "zigbee.h"
 
 char* config_scriptName;
 char* config_ttydevice;
@@ -15,6 +16,7 @@ uint8_t* config_panID;
 uint32_t config_nbPanID;
 double config_altitude;
 char* config_fifo_name;
+uint16_t config_scan_channel;
 
 static int32_t configfile_doRead(FILE* f);
 static int32_t configfile_decodeLine(char line[]);
@@ -293,6 +295,19 @@ static int32_t configfile_createConfig(char key[], char value[])
     config_fifo_name = malloc(strlen(value) + 1);
     assert(config_fifo_name != NULL);
     strcpy(config_fifo_name, value);
+  }
+  else if (strcmp(key, "scan_channel") == 0)
+  {
+    uint32_t v;
+    v = strtoul(value, &endConversion, 0);
+    if (*endConversion == '\0')
+    {
+      config_scan_channel = (uint16_t) v;
+    }
+    else
+    {
+      config_scan_channel = ZIGGEE_DEFAULT_BITMASK;
+    }
   }
   else
   {
