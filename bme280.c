@@ -140,7 +140,7 @@ ssize_t i2c_read_register(uint8_t address, uint8_t* data, uint8_t length)
 
     if (DEBUG_ON)
     {
-      fprintf(stdout, "0x%.2x: ", address);
+      fprintf(stdout, "(R) 0x%.2x: ", address);
       for (uint32_t i = 0; i < length; i++)
       {
         fprintf(stdout, "0x%.2x ", data[i]);
@@ -181,6 +181,11 @@ ssize_t i2c_write_register(uint8_t address, uint8_t data)
       close(fd);
       return -1;
     }
+
+    if (DEBUG_ON)
+    {
+      fprintf(stdout, "(W) 0x%.2x: 0x%.2x\n", address, data);
+    }
     close(fd);
   }
 
@@ -220,6 +225,8 @@ void mainLoop(void)
   uint8_t data[24];
   uint32_t r;
 
+  //reset
+  i2c_write_register(0xE0, 0xB6);
 
   r = i2c_read_register(0xD0, data, 1);
   if ((r != 1) && (data[0] != BME280_ID))
@@ -296,9 +303,6 @@ void mainLoop(void)
     fprintf(stdout, "trimParam.dig_H6 = %d (0x%.1x)\n", trimParam.dig_H6, trimParam.dig_H6);
   }
 
-  //     i2c_write_register(0xF5, 0x00);
-  //     i2c_write_register(0xF2, 0x01);
-
   uint32_t pressureRaw;
   uint32_t temperatureRaw;
   uint32_t humidityRaw;
@@ -311,18 +315,21 @@ void mainLoop(void)
   struct timespec waitTime;
   while (1)
   {
+    i2c_read_register(0xF3, data, 1);
+
     i2c_write_register(0xF5, 0x00);
     i2c_write_register(0xF2, 0x01);
     i2c_write_register(0xF4, 0x25);
 
-    i2c_read_register(0xF2, data, 1);
-
+    i2c_read_register(0xF3, data, 1);
+    while ((data[0] & 0x09) != 0x00)
+    {
+      i2c_read_register(0xF3, data, 1);
+    }
 
     i2c_read_register(0xF7, data, 8);
     pressureRaw = (((uint32_t) data[0]) << 12) | (((uint32_t) data[1]) << 4) | ((data[2] & 0xF0) >> 4) ;
-
     temperatureRaw = (((uint32_t) data[3]) << 12) | (((uint32_t) data[4]) << 4) | ((data[5] & 0xF0) >> 4) ;
-
     humidityRaw = (((uint32_t) data[6]) << 8) | data[7] ;
 
     fprintf(stdout, "p = 0x%x, t = 0x%x, h = 0x%x\n", pressureRaw, temperatureRaw, humidityRaw);
@@ -338,7 +345,7 @@ void mainLoop(void)
 
     fprintf(stdout, "temperature = %f, humidity = %f, pressure = %f (at sea level: %f)\n", temperature, humidity, pressure,
             pressureAtSeaLevel);
-
+    fprintf(stdout, "waiting for next cycle\n");
     waitTime.tv_sec = 1;
     waitTime.tv_nsec = 0;
     nanosleep(&waitTime, NULL);
