@@ -88,9 +88,7 @@ int main(int argc, char* argv[])
     exit(EXIT_FAILURE);
   }
 
-  if ((config_scriptName == NULL) || (config_ttydevice == NULL) || (config_panID == NULL) || (config_gpio_reset == NULL)
-      ||
-      (config_fifo_name == NULL))
+  if ((config_scriptName == NULL) || (config_ttydevice == NULL) || (config_panID == NULL) || (config_fifo_name == NULL))
   {
     fprintf(stderr, "config file is not complete\n");
     exit(EXIT_FAILURE);
@@ -113,8 +111,18 @@ int main(int argc, char* argv[])
 
   //first, start by reset the zb component
 #ifdef GPIO_OLD_API
+  if (config_gpio_reset == NULL)
+  {
+    fprintf(stderr, "config file (gpio) is not complete\n");
+    exit(EXIT_FAILURE);
+  }
   gpio_reset(config_gpio_reset);
 #else
+  if (config_gpio_ctrl_name == NULL)
+  {
+    fprintf(stderr, "config file (gpio) is not complete\n");
+    exit(EXIT_FAILURE);
+  }
   gpio_init();
   int32_t fd_gpio;
   fd_gpio = gpio_configure_output(config_gpio_ctrl_name, config_gpio_line, 0);
