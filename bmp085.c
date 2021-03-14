@@ -90,14 +90,25 @@ int main(int argc, char* argv[])
   }
 
   //first, start by reset the component
-  reset(config_gpio_reset);
+#ifdef GPIO_OLD_API
+  gpio_reset(config_gpio_reset);
+#else
+  gpio_init();
+  int32_t fd;
+  fd = gpio_configure_output(config_gpio_ctrl_name, config_gpio_line, 0);
+  gpio_perform_reset(fd);
+#endif
 
   openlog("bmp085", 0, LOG_USER);
   syslog(LOG_INFO, "starting...");
 
   mainLoop();
-
   closelog();
+
+#ifndef GPIO_OLD_API
+  gpio_close_all();
+#endif
+
   return EXIT_SUCCESS;
 }
 

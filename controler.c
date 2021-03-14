@@ -112,7 +112,14 @@ int main(int argc, char* argv[])
   syslog(LOG_INFO, "starting...");
 
   //first, start by reset the zb component
-  reset(config_gpio_reset);
+#ifdef GPIO_OLD_API
+  gpio_reset(config_gpio_reset);
+#else
+  gpio_init();
+  int32_t fd_gpio;
+  fd_gpio = gpio_configure_output(config_gpio_ctrl_name, config_gpio_line, 0);
+  gpio_perform_reset(fd_gpio);
+#endif /* GPIO_OLD_API */
 
   fd = serial_setup(config_ttydevice, baudRate, SERIAL_PARITY_OFF, SERIAL_RTSCTS_OFF, SERIAL_STOPNB_1);
   if (fd < 0)
@@ -121,7 +128,7 @@ int main(int argc, char* argv[])
     exit(EXIT_FAILURE);
   }
 
-  bool bok = webcmd_init(config_fifo_name);
+  bool bok = true; ////webcmd_init(config_fifo_name);
   if (!bok)
   {
     //log already printed, not necc.
@@ -159,6 +166,11 @@ int main(int argc, char* argv[])
   }
 
   closelog();
+
+#ifndef GPIO_OLD_API
+  gpio_close_all();
+#endif /* GPIO_OLD_API */
+
   return EXIT_SUCCESS;
 }
 

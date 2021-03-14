@@ -24,17 +24,11 @@
 
 #define I2C_SLAVE             (0x0703)  /* Use to set the slave address */
 
-#define I2C_DEVICE            "/dev/i2c-1"
+//#define I2C_DEVICE            "/dev/i2c-1"
 #define I2C_SLAVE_ADDR        (0x76)
 
-#define OSS             (3)  // [0 to 3] 3 : max resolution
-
 static void mainLoop(void);
-static bool bmp085_read_eeprom(uint8_t address, uint16_t* value);
-static bool bmp085_read_rawTemperature(uint16_t* value);
-static bool bmp085_read_pressure(uint32_t* value);
-static bool bmp085_read_rawPressure(uint32_t* value);
-static void build_commandline(double pressureAtSeaLevel, int32_t temperature);
+static void build_commandline(double pressureAtSeaLevel, double temperature);
 
 int main(int argc, char* argv[])
 {
@@ -77,12 +71,11 @@ int main(int argc, char* argv[])
     exit(EXIT_FAILURE);
   }
 
-  /* if ((config_scriptName == NULL) || (config_device == NULL))
-   {
-     fprintf(stderr, "config file is not complete\n");
-     exit(EXIT_FAILURE);
-   }*/
-
+  if ((config_scriptName == NULL) || (config_device == NULL))
+  {
+    fprintf(stderr, "config file is not complete\n");
+    exit(EXIT_FAILURE);
+  }
 
   if (bAsDaemon)
   {
@@ -103,7 +96,7 @@ ssize_t i2c_read_register(uint8_t address, uint8_t* data, uint8_t length)
   int fd;
   ssize_t r = -1;
 
-  fd = open(I2C_DEVICE, O_WRONLY);
+  fd = open(config_device, O_WRONLY);
   if (fd == -1)
   {
     syslog(LOG_EMERG, "ERROR on open device (1)");
@@ -123,7 +116,7 @@ ssize_t i2c_read_register(uint8_t address, uint8_t* data, uint8_t length)
   }
 
   //now read the data
-  fd = open(I2C_DEVICE, O_RDONLY);
+  fd = open(config_device, O_RDONLY);
   if (fd == -1)
   {
     syslog(LOG_EMERG, "ERROR on open device (2)");
@@ -160,7 +153,7 @@ ssize_t i2c_write_register(uint8_t address, uint8_t data)
   int fd;
   ssize_t s;
 
-  fd = open(I2C_DEVICE, O_WRONLY);
+  fd = open(config_device, O_WRONLY);
   if (fd == -1)
   {
     syslog(LOG_EMERG, "ERROR on open device (1)");
@@ -332,7 +325,7 @@ void mainLoop(void)
     temperatureRaw = (((uint32_t) data[3]) << 12) | (((uint32_t) data[4]) << 4) | ((data[5] & 0xF0) >> 4) ;
     humidityRaw = (((uint32_t) data[6]) << 8) | data[7] ;
 
-    fprintf(stdout, "p = 0x%x, t = 0x%x, h = 0x%x\n", pressureRaw, temperatureRaw, humidityRaw);
+    //fprintf(stdout, "p = 0x%x, t = 0x%x, h = 0x%x\n", pressureRaw, temperatureRaw, humidityRaw);
 
     temperature = bme280_getTemperature(&trimParam, temperatureRaw, &t_fine);
     pressure = bme280_getPressure(&trimParam, t_fine, pressureRaw);
@@ -342,11 +335,11 @@ void mainLoop(void)
     double a = 1 - (config_altitude / 44330.);
     double pressureAtSeaLevel = pressure / pow(a, 5.255);
 
-
-    fprintf(stdout, "temperature = %f, humidity = %f, pressure = %f (at sea level: %f)\n", temperature, humidity, pressure,
-            pressureAtSeaLevel);
-    fprintf(stdout, "waiting for next cycle\n");
-    waitTime.tv_sec = 1;
+    //fprintf(stdout, "temperature = %f, humidity = %f, pressure = %f (at sea level: %f)\n", temperature, humidity, pressure,
+    //        pressureAtSeaLevel);
+    build_commandline(pressureAtSeaLevel, temperature);
+    //fprintf(stdout, "waiting for next cycle\n");
+    waitTime.tv_sec = MAIN_LOOP_WAIT_TIME;
     waitTime.tv_nsec = 0;
     nanosleep(&waitTime, NULL);
   }
@@ -422,180 +415,7 @@ double bme280_getHumidity(trimmingParameter* trimParam, int32_t t_fine, uint32_t
   return humidity;
 }
 
-
-
-#if 0
-bIsOk = bmp085_read_eeprom(0xAA, (uint16_t*) &ac1);
-if (!bIsOk)
-{
-  return;
-}
-
-bIsOk = bmp085_read_eeprom(0xAC, (uint16_t*) &ac2);
-if (!bIsOk)
-{
-  return;
-}
-
-bIsOk = bmp085_read_eeprom(0xAE, (uint16_t*) &ac3);
-if (!bIsOk)
-{
-  return;
-}
-
-bIsOk = bmp085_read_eeprom(0xB0, &ac4);
-if (!bIsOk)
-{
-  return;
-}
-
-bIsOk = bmp085_read_eeprom(0xB2, &ac5);
-if (!bIsOk)
-{
-  return;
-}
-
-bIsOk = bmp085_read_eeprom(0xB4, &ac6);
-if (!bIsOk)
-{
-  return;
-}
-
-bIsOk = bmp085_read_eeprom(0xB6, (uint16_t*) &b1);
-if (!bIsOk)
-{
-  return;
-}
-
-bIsOk = bmp085_read_eeprom(0xB8, (uint16_t*) &b2);
-if (!bIsOk)
-{
-  return;
-}
-
-bIsOk = bmp085_read_eeprom(0xBA, (uint16_t*) &mb);
-if (!bIsOk)
-{
-  return;
-}
-
-bIsOk = bmp085_read_eeprom(0xBC, (uint16_t*) &mc);
-if (!bIsOk)
-{
-  return;
-}
-
-bIsOk = bmp085_read_eeprom(0xBE, (uint16_t*) &md);
-if (!bIsOk)
-{
-  return;
-}
-
-uint16_t rawTemp;
-uint32_t rawPressure;
-bool bIsOkPressure;
-
-while (1)
-{
-  bIsOk = bmp085_read_rawTemperature(&rawTemp);
-  if (!bIsOk)
-  {
-    syslog(LOG_INFO, "Unable to read temperature");
-  }
-
-  bIsOkPressure = bmp085_read_rawPressure(&rawPressure);
-  if (!bIsOkPressure)
-  {
-    syslog(LOG_INFO, "Unable to read pressure");
-  }
-
-
-  if ((bIsOk == true) && (bIsOkPressure == true))
-  {
-    /*
-    ac1 = 408;
-    ac2 = -72;
-    ac3 = -14383;
-    ac4 = 32741;
-    ac5 = 32757;
-    ac6 = 23153;
-    b1 = 6190;
-    b2 = 4;
-    mb = -32768;
-    mc = -8711;
-    md = 2868;
-
-    rawTemp = 27898;
-    rawPressure = 23843;
-    should find temperature = 150 and pressure = 69964
-    */
-
-    int32_t x1, x2;
-    int32_t b5;
-
-    x1 = (((int32_t)rawTemp - (int32_t)ac6) * (int32_t)ac5) >> 15;
-    x2 = ((int32_t)mc << 11) / (x1 + md);
-    b5 = x1 + x2;
-
-    //   fprintf(stdout, "x1 = %d\n", x1);
-    //   fprintf(stdout, "x2 = %d\n", x2);
-    //   fprintf(stdout, "b 5= %d\n", b5);
-
-    int32_t temperature = (b5 + 8) >> 4;
-
-    int32_t b3;
-    uint32_t b4;
-    int32_t b6;
-    uint32_t b7;
-    int32_t x3;
-    int32_t pressure;
-
-    b6 = b5 - 4000;
-    x1 = (b2 * (b6 * b6) >> 12) >> 11;
-    x2 = (ac2 * b6) >> 11;
-    x3 = x1 + x2;
-    b3 = (((((long)ac1) * 4 + x3) << OSS) + 2) >> 2;
-
-    // Calculate B4
-    x1 = (ac3 * b6) >> 13;
-    x2 = (b1 * ((b6 * b6) >> 12)) >> 16;
-    x3 = ((x1 + x2) + 2) >> 2;
-    b4 = (ac4 * (unsigned long)(x3 + 32768)) >> 15;
-
-    b7 = ((unsigned long)(rawPressure - b3) * (50000 >> OSS));
-    if (b7 < 0x80000000)
-    {
-      pressure = (b7 << 1) / b4;
-    }
-    else
-    {
-      pressure = (b7 / b4) << 1;
-    }
-
-    x1 = (pressure >> 8) * (pressure >> 8);
-    x1 = (x1 * 3038) >> 16;
-    x2 = (-7357 * pressure) >> 16;
-    pressure += (x1 + x2 + 3791) >> 4;
-
-    //fprintf(stdout, "raw pressure = %d\n", pressure);
-
-    double a = 1 - (config_altitude / 44330.);
-    double pressureAtSeaLevel = pressure / pow(a, 5.255);
-
-    build_commandline(pressureAtSeaLevel, temperature);
-  }
-
-  struct timespec waitTime;
-  waitTime.tv_sec = MAIN_LOOP_WAIT_TIME;
-  waitTime.tv_nsec = 0;
-  nanosleep(&waitTime, NULL);
-}
-
-}
-
-#endif
-
-void build_commandline(double pressureAtSeaLevel, int32_t temperature)
+static void build_commandline(double pressureAtSeaLevel, double temperature)
 {
   char commandline[CMD_LINE_SIZE];
 
@@ -607,201 +427,10 @@ void build_commandline(double pressureAtSeaLevel, int32_t temperature)
   snprintf(commandline, CMD_LINE_SIZE, "%s address=%s id=1 temp=%.1f id=2 press=%.2f",
            config_scriptName,
            I2C_ADDRESS,
-           (double) temperature / 10,
-           pressureAtSeaLevel / 100
+           temperature,
+           pressureAtSeaLevel
           );
   syslog(LOG_DEBUG, "commandline: %s", commandline);
   //   fprintf(stdout, "%s\n", commandline);
   system(commandline);
 }
-
-
-
-static bool bmp085_read_eeprom(uint8_t address, uint16_t* value)
-{
-  int fd;
-  ssize_t r;
-
-  fd = open(I2C_DEVICE, O_WRONLY);
-  if (fd == -1)
-  {
-    syslog(LOG_EMERG, "ERROR on open device (1)");
-    return false;
-  }
-  else
-  {
-    ioctl(fd, I2C_SLAVE, I2C_SLAVE_ADDR);
-    r = write(fd, &address, 1);
-    if (r != 1)
-    {
-      syslog(LOG_ERR, "Unable to write address on the device, errno = %d", errno);
-      close(fd);
-      return false;
-    }
-    close(fd);
-  }
-
-  //now read the data
-  fd = open(I2C_DEVICE, O_RDONLY);
-  if (fd == -1)
-  {
-    syslog(LOG_EMERG, "ERROR on open device (2)");
-    return false;
-  }
-  else
-  {
-    ioctl(fd, I2C_SLAVE, I2C_SLAVE_ADDR);
-    uint8_t buffer[2];
-    r = read(fd, buffer, 2);
-    if (r != 2)
-    {
-      syslog(LOG_ERR, "Unable to read value on the device, errno = %d", errno);
-      close(fd);
-      return false;
-    }
-    *value = ((uint16_t) buffer[0]) << 8 | buffer[1];
-    //fprintf(stdout, " at : 0x%x: 0x%x 0x%x (0x%x)\n", address, buffer[0], buffer[1], *value);
-    close(fd);
-  }
-
-  return true;
-}
-
-
-static bool bmp085_read_rawTemperature(uint16_t* value)
-{
-  int fd;
-  bool r;
-  ssize_t s;
-
-  fd = open(I2C_DEVICE, O_WRONLY);
-  if (fd == -1)
-  {
-    syslog(LOG_EMERG, "ERROR on open device (1)");
-    return false;
-  }
-  else
-  {
-    uint8_t buffer[2];
-    ioctl(fd, I2C_SLAVE, I2C_SLAVE_ADDR);
-
-    buffer[0] = 0xF4;
-    buffer[1] = 0x2E;
-
-    s = write(fd, buffer, 2);
-    if (s != 2)
-    {
-      syslog(LOG_ERR, "uname to write on device to read temperature");
-      close(fd);
-      return false;
-    }
-    close(fd);
-  }
-
-  struct timespec waitTime;
-  waitTime.tv_sec = 0;
-  waitTime.tv_nsec = 10000000; // according to spec 4.5ms --> take 10ms to be sure :)
-  nanosleep(&waitTime, NULL);
-
-  //now read the result
-  r = bmp085_read_eeprom(0xF6, value);
-  return r;
-}
-
-
-static bool bmp085_read_rawPressure(uint32_t* value)
-{
-  int fd;
-  bool r;
-  ssize_t s;
-
-  fd = open(I2C_DEVICE, O_WRONLY);
-  if (fd == -1)
-  {
-    syslog(LOG_EMERG, "ERROR on open device (1)");
-    return false;
-  }
-  else
-  {
-    uint8_t buffer[2];
-    ioctl(fd, I2C_SLAVE, I2C_SLAVE_ADDR);
-
-    buffer[0] = 0xF4;
-    buffer[1] = 0x34 + (OSS << 6);
-
-    s = write(fd, buffer, 2);
-    if (s != 2)
-    {
-      syslog(LOG_ERR, "uname to write on device to read pressure");
-      close(fd);
-      return false;
-    }
-    close(fd);
-  }
-
-  struct timespec waitTime;
-  waitTime.tv_sec = 0;
-  waitTime.tv_nsec = (2 + (3 << OSS)) * 2000000; // 2 * converstion in ms
-  nanosleep(&waitTime, NULL);
-
-  //now read the result
-  r = bmp085_read_pressure(value);
-  return r;
-}
-
-
-
-static bool bmp085_read_pressure(uint32_t* value)
-{
-  int fd;
-  ssize_t s;
-  uint8_t address;
-  address = 0xF6;
-
-  fd = open(I2C_DEVICE, O_WRONLY);
-  if (fd == -1)
-  {
-    syslog(LOG_EMERG, "ERROR on open device (1)");
-    return false;
-  }
-  else
-  {
-    ioctl(fd, I2C_SLAVE, I2C_SLAVE_ADDR);
-    s = write(fd, &address, 1);
-    if (s != 1)
-    {
-      syslog(LOG_ERR, "uname to write on device to read pressure");
-      close(fd);
-      return false;
-    }
-    close(fd);
-  }
-
-  //now read the data
-  fd = open(I2C_DEVICE, O_RDONLY);
-  if (fd == -1)
-  {
-    syslog(LOG_EMERG, "ERROR on open device (2)");
-    return false;
-  }
-  else
-  {
-    ioctl(fd, I2C_SLAVE, I2C_SLAVE_ADDR);
-    uint8_t buffer[3];
-    s = read(fd, buffer, 3);
-    if (s != 3)
-    {
-      syslog(LOG_ERR, "uname to read pressure");
-      close(fd);
-      return false;
-    }
-    *value = ((uint32_t) buffer[0]) << 16 | ((uint32_t) buffer[1]) << 8 | buffer[0];
-    *value = *value >> (8 - OSS);
-    close(fd);
-  }
-
-  return true;
-}
-
-
-

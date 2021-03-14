@@ -14,6 +14,8 @@ extern char* config_device;
 extern double config_altitude;
 extern char* config_fifo_name;
 extern uint16_t config_scan_channel;
+extern char* config_gpio_ctrl_name;
+extern uint32_t config_gpio_line;
 
 extern int32_t configfile_read(const char filename[]);
 

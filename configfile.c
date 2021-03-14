@@ -17,6 +17,8 @@ uint32_t config_nbPanID;
 double config_altitude;
 char* config_fifo_name;
 uint16_t config_scan_channel;
+char* config_gpio_ctrl_name;
+uint32_t config_gpio_line;
 
 static int32_t configfile_doRead(FILE* f);
 static int32_t configfile_decodeLine(char line[]);
@@ -274,6 +276,25 @@ static int32_t configfile_createConfig(char key[], char value[])
     config_gpio_reset = malloc(strlen(value) + 1);
     assert(config_gpio_reset != NULL);
     strcpy(config_gpio_reset, value);
+  }
+  else if (strcmp(key, "gpio_ctrl_name") == 0)
+  {
+    config_gpio_ctrl_name = malloc(strlen(value) + 1);
+    assert(config_gpio_ctrl_name != NULL);
+    strcpy(config_gpio_ctrl_name, value);
+  }
+  else if (strcmp(key, "gpio_line") == 0)
+  {
+    uint32_t v;
+    v = strtoul(value, &endConversion, 0);
+    if (*endConversion == '\0')
+    {
+      config_gpio_line = v;
+    }
+    else
+    {
+      config_gpio_line = -1;
+    }
   }
   else if (strcmp(key, "device") == 0)
   {
