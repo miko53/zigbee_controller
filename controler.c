@@ -136,7 +136,7 @@ int main(int argc, char* argv[])
     exit(EXIT_FAILURE);
   }
 
-  bool bok = true; ////webcmd_init(config_fifo_name);
+  bool bok = webcmd_init(config_fifo_name);
   if (!bok)
   {
     //log already printed, not necc.
