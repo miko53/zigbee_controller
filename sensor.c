@@ -54,6 +54,10 @@ typedef enum
   SENSOR_HYT221_TEMP = 0x01,
   SENSOR_HYT221_HUM = 0x02,
   SENSOR_VOLTAGE = 0x03,
+  SENSOR_WIND_SPEED = 0x04, //m.s-1 *10
+  SENSOR_WIND_DIR = 0x05,  //deg * 10
+  SENSOR_PRESSURE = 0x06, // hpa *10
+  SENSOR_RAINFALL = 0x07, // mm
   ACT_HEATER = 0x81
 } sensor_Type;
 
@@ -183,6 +187,8 @@ static void sensor_readData(zb_payload_frame* payload)
   uint16_t temp_raw;
   uint16_t humidity_raw;
   uint16_t batt_raw;
+  uint16_t raw_data;
+  double raw_double_data;
   double temp;
   double humidity;
   double batt;
@@ -232,6 +238,46 @@ static void sensor_readData(zb_payload_frame* payload)
           gData[gIndex].unit = "volt";
           gIndex++;
         }
+        break;
+
+      case SENSOR_WIND_SPEED:
+        raw_data = ntohs(payload->frame.sensors[id].data);
+        raw_double_data = raw_data / 10.0;
+        gData[gIndex].id = id;
+        gData[gIndex].type = DOUBLE;
+        gData[gIndex].value = raw_double_data;
+        gData[gIndex].unit = "wind_speed";
+        gIndex++;
+        break;
+
+      case SENSOR_WIND_DIR:
+        raw_data = ntohs(payload->frame.sensors[id].data);
+        raw_double_data = raw_data / 10.0;
+        gData[gIndex].id = id;
+        gData[gIndex].type = DOUBLE;
+        gData[gIndex].value = raw_double_data;
+        gData[gIndex].unit = "wind_dir";
+        gIndex++;
+        break;
+
+      case SENSOR_PRESSURE:
+        raw_data = ntohs(payload->frame.sensors[id].data);
+        raw_double_data = raw_data / 10.0;
+        gData[gIndex].id = id;
+        gData[gIndex].type = DOUBLE;
+        gData[gIndex].value = raw_double_data;
+        gData[gIndex].unit = "press";
+        gIndex++;
+        break;
+
+      case SENSOR_RAINFALL:
+        raw_data = ntohs(payload->frame.sensors[id].data);
+        raw_double_data = (double) raw_data;
+        gData[gIndex].id = id;
+        gData[gIndex].type = DOUBLE;
+        gData[gIndex].value = raw_double_data;
+        gData[gIndex].unit = "rain_fall";
+        gIndex++;
         break;
 
       case ACT_HEATER:
