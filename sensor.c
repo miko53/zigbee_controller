@@ -54,10 +54,10 @@ typedef enum
   SENSOR_HYT221_TEMP = 0x01,
   SENSOR_HYT221_HUM = 0x02,
   SENSOR_VOLTAGE = 0x03,
-  SENSOR_WIND_SPEED = 0x04, //m.s-1 *10
+  SENSOR_WIND_SPEED = 0x04, //m.s-1 *100
   SENSOR_WIND_DIR = 0x05,  //deg * 10
   SENSOR_PRESSURE = 0x06, // hpa *10
-  SENSOR_RAINFALL = 0x07, // mm
+  SENSOR_RAINFALL = 0x07, // mm *100
   ACT_HEATER = 0x81
 } sensor_Type;
 
@@ -242,7 +242,7 @@ static void sensor_readData(zb_payload_frame* payload)
 
       case SENSOR_WIND_SPEED:
         raw_data = ntohs(payload->frame.sensors[id].data);
-        raw_double_data = raw_data / 10.0;
+        raw_double_data =  (((double)raw_data)*3.6) / 100.0;
         gData[gIndex].id = id;
         gData[gIndex].type = DOUBLE;
         gData[gIndex].value = raw_double_data;
@@ -252,7 +252,7 @@ static void sensor_readData(zb_payload_frame* payload)
 
       case SENSOR_WIND_DIR:
         raw_data = ntohs(payload->frame.sensors[id].data);
-        raw_double_data = raw_data / 10.0;
+        raw_double_data = ((double) raw_data) / 10.0;
         gData[gIndex].id = id;
         gData[gIndex].type = DOUBLE;
         gData[gIndex].value = raw_double_data;
@@ -272,7 +272,7 @@ static void sensor_readData(zb_payload_frame* payload)
 
       case SENSOR_RAINFALL:
         raw_data = ntohs(payload->frame.sensors[id].data);
-        raw_double_data = (double) raw_data;
+        raw_double_data = ((double) raw_data) / 100.0;
         gData[gIndex].id = id;
         gData[gIndex].type = DOUBLE;
         gData[gIndex].value = raw_double_data;
